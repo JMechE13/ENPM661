@@ -14,6 +14,12 @@ import time
 # Import OpenCV for visualization
 import cv2
 
+# TODO - User input for orientation
+# TODO - A* as function
+# TODO - Define action set
+# TODO - Result visualization
+# TODO - Visited nodes function
+# TODO - Is obstacle function
 
 
 # Define function for visualizing the environment
