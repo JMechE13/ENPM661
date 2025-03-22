@@ -123,7 +123,31 @@ def discretize(clearances: dict) -> NDArray[np.uint8]:
     # Return binary discretized environment
     return grid.astype(np.uint8)
 
-
+def get_point(loc,obstacle_arr):
+    while True:
+        user_input = input(f"Enter x and y location for {loc} separated by comma, in format x,y (x from 1 to 600, y from 1 to 250): ").strip()
+        if user_input == "" and loc == "start":
+            return (6,6)
+        elif user_input == "" and loc == "goal":
+            return (590,240)
+        parts = user_input.split(",")
+        if len(parts) == 2:
+            try:
+                x = int(parts[0].strip())
+                y = int(parts[1].strip())
+                if 1<=x<=600 and 1<=y<=250:
+                    x = x-1
+                    y = y-1
+                    if obstacle_arr[x,y]:
+                        return (x,y)
+                    else:
+                        print("Sorry this point is within the obstacle space. Try again.")
+                else:
+                    print("Invalid input. Please ensure both x and y are within the bounds of the space.")
+            except ValueError:
+                print("Invalid input. Please enter integers for both x and y.")
+        else:
+            print("Invalid input. Please enter exactly two integers separated by a comma.")
 
 # Define main execution
 
@@ -390,8 +414,9 @@ def main():
         ],
 
     }
-
-    
+    clearance_arr = discretize(clearances)
+    start_point = get_point("start",clearance_arr)
+    end_point = get_point("goal",clearance_arr)
     visualize_environment(obstacles, clearances)
     
 
