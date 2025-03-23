@@ -129,31 +129,39 @@ def discretize(clearances: dict) -> NDArray[np.uint8]:
     # Return binary discretized environment
     return grid.astype(np.uint8)
 
-def get_point(loc,obstacle_arr):
+#define function to check if point in obstacle space
+def is_valid(loc: tuple, obstacle_arr: NDArray[np.uint8]) -> bool:
+    if loc[0] < 0 or loc[0] > 599 or loc[1] < 0 or loc[1] > 249:
+        return False
+    return obstacle_arr[loc[0],loc[1]] == 1
+
+#define function to get user input for point
+def get_point(loc: str,obstacle_arr: NDArray[np.uint8]) -> tuple:
     while True:
-        user_input = input(f"Enter x and y location for {loc} separated by comma, in format x,y (x from 1 to 600, y from 1 to 250): ").strip()
+        user_input = input(f"Enter position and orientation for {loc} separated by commas, in format x,y,theta (x from 1 to 600, y from 1 to 250, theta as -60, -30, 0, 30, or 60): ").strip()
         if user_input == "" and loc == "start":
-            return (6,6)
+            return (6,6,0)
         elif user_input == "" and loc == "goal":
-            return (590,240)
+            return (590,240,0)
         parts = user_input.split(",")
-        if len(parts) == 2:
+        if len(parts) == 3:
             try:
                 x = int(parts[0].strip())
                 y = int(parts[1].strip())
-                if 1<=x<=600 and 1<=y<=250:
+                theta = int(parts[2].strip())
+                if 1<=x<=600 and 1<=y<=250 and theta in [-60,-30,0,30,60]:
                     x = x-1
                     y = y-1
-                    if obstacle_arr[x,y]:
-                        return (x,y)
+                    if is_valid((x,y),obstacle_arr):
+                        return (x,y,theta)
                     else:
                         print("Sorry this point is within the obstacle space. Try again.")
                 else:
-                    print("Invalid input. Please ensure both x and y are within the bounds of the space.")
+                    print("Invalid input. Please ensure both x and y are within the bounds of the space and theta is in [-60,-30,0,30,60].")
             except ValueError:
-                print("Invalid input. Please enter integers for both x and y.")
+                print("Invalid input. Please enter integers for x, y, and theta.")
         else:
-            print("Invalid input. Please enter exactly two integers separated by a comma.")
+            print("Invalid input. Please enter exactly three integers separated by a comma.")
 
 # Define main execution
 
