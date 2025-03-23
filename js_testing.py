@@ -106,10 +106,13 @@ class Node():
         elif self.angle <= -180:
             self.angle = 180 - (self.angle + 180)
 
+    # print node
+    def __str__(self):
 
+        return f'Position ({self.location[0]}, {self.location[1]}) mm -- Angle: {self.angle} deg'
 
-# class to represent 3D configuration space
-class CSpace():
+# class to represent 3D configuration map
+class CMap():
 
     def __init__(self):
 
@@ -124,56 +127,72 @@ class CSpace():
 
         self.cmap = np.zeros(self.cmap_dims, dtype=np.uint8)
 
-    
+
+    # check the cmap for if node already exists
     def check(self, Node):
 
         x, y, angle = Node.get_pose()
 
         x_idx, y_idx, angle_idx = self.to_cmap_frame(x, y, angle)
 
-        print(x_idx, y_idx, angle_idx)
+        if self.cmap[x_idx, y_idx, angle_idx] == 0:
 
-    
+            # node config did not already exist, add to cmap -- return 1 as valid
+            self.cmap[x_idx, y_idx, angle_idx] = 1
+            return 1
+
+        else:
+
+            # node config already exists -- return 0 as invalid
+            return 0
+
+    # convert pose to cmap representation
     def to_cmap_frame(self, x, y, angle):
 
-        x = x*2
-        y = y*2
+        x_idx  = int(np.round(x*2))
+        y_idx = int(np.round(y*2))
         
-        angle_idx = angle/30.0 + 6
+
+        angle_idx = int(np.ceil(angle/30.0 + 6) - 1)
+
+        #print('angle: ', angle, ' cmap idx: ', angle_idx)
+
+        return x_idx, y_idx, angle_idx
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        
 def main():
     
-    plt.figure()
 
-    vec = Node((1,1), 270)
+    # initialize plot, cmap, and node testers
+    plt.figure()
+    
+    cmap = CMap()
+
+    # node definition, (x,y) and angle in degrees CCW + from horizontal
+    vec = Node((1,1), 10)
+
+    # testing actions, arrow visualizations and cmap checking
+    print('\nInitial Pose Vector:')
+    print(vec)
     print(vec.get_pose())
     arrow = vec.get_arrow_rep()
     plt.arrow(arrow[0], arrow[1], arrow[2], arrow[3], head_width = 0.1, head_length=0.1, fc='blue', ec='blue')
 
     vec.action_4()
+    print('\nAfter action:')
+    print(vec)
     print(vec.get_pose())
     arrow = vec.get_arrow_rep()
     plt.arrow(arrow[0], arrow[1], arrow[2], arrow[3], head_width = 0.1, head_length=0.1, fc='blue', ec='blue')
 
 
+    # for i in range(-180, 180):
+    #     vec = Node((1,1,), i)
+    #     cmap.check(vec)
 
+    print('\nCmap checks: (first accepted - 1, second failed - 0)')
+    print(cmap.check(vec))   # returns 1 -- node did not exist, therefore check passes and is valid
+    print(cmap.check(vec))   # return 0 -- node exists already, therefore fails check and is invalid
 
 
 
