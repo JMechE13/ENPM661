@@ -14,7 +14,6 @@ import time
 # Import OpenCV for visualization
 import cv2
 
-# TODO - User input for orientation
 # TODO - A* as function
 # TODO - Define action set
 # TODO - Result visualization
@@ -129,39 +128,101 @@ def discretize(clearances: dict) -> NDArray[np.uint8]:
     # Return binary discretized environment
     return grid.astype(np.uint8)
 
-#define function to check if point in obstacle space
+
+
+# Define function to check if a point is in an obstacle space
+
 def is_valid(loc: tuple, obstacle_arr: NDArray[np.uint8]) -> bool:
+    
+    """
+    Determines whether a location is a valid point in free space.
+
+    Args:
+        loc (tuple): Location to be tested.
+        obstacle_arr (NDArray[np.uint8]): Discretized, binary array of the environment state.
+
+    Returns:
+        bool: True if point is valid, False otherwise.
+    """
+    
+    # If location is out of environment bounds
     if loc[0] < 0 or loc[0] > 599 or loc[1] < 0 or loc[1] > 249:
         return False
+    
+    # Return True for 1 (free space) False for 0 (obstacle space)
     return obstacle_arr[loc[0],loc[1]] == 1
 
-#define function to get user input for point
+
+
+# Define function to get user input for point
+
 def get_point(loc: str,obstacle_arr: NDArray[np.uint8]) -> tuple:
+    
+    """
+    Prompts the user to enter a valid pose in the environment.
+
+    Args:
+        loc (str): Definition of state. "Start" or "Goal".
+        obstacle_arr (NDArray[np.uint8]): Discretized, binary array of the environment state.
+
+    Returns:
+        tuple: User-defined pose in the format of (x, y, θ).
+    """
+    
+    # Loop until inputs are valid
     while True:
-        user_input = input(f"Enter position and orientation for {loc} separated by commas, in format x,y,theta (x from 1 to 600, y from 1 to 250, theta as -60, -30, 0, 30, or 60): ").strip()
+        
+        # Gather user input
+        user_input = input(f"{loc} pose separated by commas in the format of: x, y, θ\n- x: 1 - 600\n- y: 1 - 250\n- θ: -60, -30, 0, 30, 60\nEnter: ").strip()
+        
+        # Return default start pose if input is empty
         if user_input == "" and loc == "start":
             return (6,6,0)
+        
+        # Return default goal pose of  if input is empty
         elif user_input == "" and loc == "goal":
             return (590,240,0)
+        
+        # Break user input into pose coordinates
         parts = user_input.split(",")
+        
+        # Ensure all three pose coordinates are present
         if len(parts) == 3:
             try:
+                
+                # Assign input coordinates
                 x = int(parts[0].strip())
                 y = int(parts[1].strip())
                 theta = int(parts[2].strip())
+                
+                # If coordinates are within bounds
                 if 1<=x<=600 and 1<=y<=250 and theta in [-60,-30,0,30,60]:
+                    
+                    # Convert positional coordinates to 1 - n scale
                     x = x-1
                     y = y-1
-                    if is_valid((x,y),obstacle_arr):
+                    
+                    # If location is not an obstacle, return pose
+                    if is_valid((x,y), obstacle_arr):
                         return (x,y,theta)
+                    
+                    # Inform user of invalid location
                     else:
-                        print("Sorry this point is within the obstacle space. Try again.")
+                        print("Sorry, this point is within the obstacle space. Try again.")
+                
+                # Inform user of invalid location
                 else:
                     print("Invalid input. Please ensure both x and y are within the bounds of the space and theta is in [-60,-30,0,30,60].")
+            
+            # Inform user of invalid input format
             except ValueError:
                 print("Invalid input. Please enter integers for x, y, and theta.")
+        
+        # Inform user of invalid input dimension
         else:
             print("Invalid input. Please enter exactly three integers separated by a comma.")
+
+
 
 # Define main execution
 
@@ -428,9 +489,27 @@ def main():
         ],
 
     }
+    
+    # Create discretized environment of obstacle clearances
     clearance_arr = discretize(clearances)
-    start_point = get_point("start",clearance_arr)
-    end_point = get_point("goal",clearance_arr)
+    
+    # Get user input for start pose
+    start_point = get_point("Start", clearance_arr)
+    
+    # Loop until the goal point is different from the start point
+    while True:
+        
+        # Get user input for goal pose
+        end_point = get_point("Goal", clearance_arr)
+        
+        # Break loop if poses are different
+        if end_point != start_point:
+            break
+        
+        # Inform user that poses must be different
+        print("The goal point cannot be the same as the start point. Please try again.")
+    
+    # Visualize the environment
     visualize_environment(obstacles, clearances)
     
 
