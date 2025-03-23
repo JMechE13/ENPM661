@@ -129,9 +129,13 @@ def discretize(clearances: dict) -> NDArray[np.uint8]:
     # Return binary discretized environment
     return grid.astype(np.uint8)
 
+#define function to check if point in obstacle space
 def is_valid(loc: tuple, obstacle_arr: NDArray[np.uint8]) -> bool:
+    if loc[0] < 0 or loc[0] > 599 or loc[1] < 0 or loc[1] > 249:
+        return False
     return obstacle_arr[loc[0],loc[1]] == 1
 
+#define function to get user input for point
 def get_point(loc: str,obstacle_arr: NDArray[np.uint8]) -> tuple:
     while True:
         user_input = input(f"Enter position and orientation for {loc} separated by commas, in format x,y,theta (x from 1 to 600, y from 1 to 250, theta as -60, -30, 0, 30, or 60): ").strip()
