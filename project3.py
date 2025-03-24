@@ -1,5 +1,3 @@
-# Import required packages
-
 # Import NumPy for mathematical operations and typing for type hints
 import numpy as np
 from numpy.typing import NDArray
@@ -52,6 +50,8 @@ class Node():
         self.location = location
         self.angle = angle
 
+        self.discrete_angle = int(angle / 30)
+
         # Visual arrow length
         self.arrow_rep_length = 0.2
 
@@ -97,7 +97,7 @@ class Node():
 
     # Define method for returning angle
 
-    def get_angle(self) -> int:
+    def get_angle(self) -> tuple[int, int]:
 
         """
         Returns the angle information of the node.
@@ -107,7 +107,7 @@ class Node():
         """
 
         # Return angle information
-        return self.angle
+        return self.angle, self.discrete_angle
     
 
 
@@ -139,6 +139,9 @@ class Node():
         delta_angle = 60
         self.angle += delta_angle
 
+        delta_discrete = 2
+        self.discrete_angle += delta_discrete
+
         # Move
         self.move()
 
@@ -151,6 +154,11 @@ class Node():
         # Change heading
         delta_angle = 30
         self.angle += delta_angle
+
+        delta_discrete = 1
+        self.discrete_angle += delta_discrete
+
+
 
         # Move
         self.move()
@@ -220,12 +228,11 @@ class Node():
         Formats the angle to be between -180 and 180 degrees.
         """
 
-        # Format angle to be 0 on the horizontal and span between -180 and 180
-        if self.angle > 180:
-            self.angle = -180 + (self.angle - 180)
-
-        elif self.angle < -180:
-            self.angle = 180 - (self.angle + 180)
+        # Format discrete_angle to be on a scale from 0-11
+        if self.discrete_angle > 11:
+            self.discrete_angle = self.discrete_angle % 12
+        elif self.discrete_angle < 0:
+            self.discrete_angle = 12 + (self.discrete_angle % 12)
 
 
     
@@ -570,9 +577,14 @@ class CMap():
         # Scale the grid 2x to match
         scaled_grid = np.repeat(np.repeat(grid, 2, axis=0), 2, axis=1)
 
-        # Store scaled binary map
+        # Stack scaled grid across a 3rd dimension 3 times
+        full_3D_binary = np.stack([scaled_grid] * 3, axis=-1)
+
+        # Store scaled binary map and 3D
         self.binary_map = scaled_grid
-        return scaled_grid
+        self.binary_3D_map = full_3D_binary
+
+        return scaled_grid, full_3D_binary
 
 
 
@@ -790,6 +802,41 @@ def get_point(loc: str,obstacle_arr: NDArray[np.uint8]) -> tuple:
 
 
 
+# Define function for performing A* algorithm
+
+def a_star(start: Node, goal: Node, binary_map: NDArray[np.uint8]):
+
+    # Define action set
+    actions = [
+        lambda node: node.action_1(),
+        lambda node: node.action_2(),
+        lambda node: node.action_3(),
+        lambda node: node.action_4(),
+        lambda node: node.action_5()
+    ]
+
+    # Define the heuristic
+    def heuristic(node: Node, goal: Node) -> float:
+        x1, y1, angle1 = node.get_pose()
+        x2, y2, angle2 = goal.get_pose()
+        return np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2 + (angle2 - angle1) ** 2)
+
+    # Initialize open nodes
+    open_list = []
+
+    # Push start node into queue (C2C, Node, C2G)
+    heapq.heappush(open_list, (0, start, heuristic(start, goal)))
+
+    print(open_list)
+
+    # Initialize parent dictionary to reconstruct the path
+    parents = {start.get_pose(): None}
+
+    # Initialize closed set to keep track of visited nodes
+    closed_set = set()
+
+
+
 # Define main execution
 
 def main():
@@ -798,7 +845,7 @@ def main():
     cmap = CMap()
 
     # Discretize environment
-    binary_map = cmap.discretize()
+    binary_map, full_3D_binary = cmap.discretize()
 
     # Get user input for start pose
     start_point = get_point("Start", binary_map)
@@ -816,8 +863,14 @@ def main():
         # Inform user that poses must be different
         print("The goal point cannot be the same as the start point. Please try again.")
 
+    # Convert start and end points to nodes
+    start_node = Node((start_point[0], start_point[1]), start_point[2])
+    end_node = Node((end_point[0], end_point[1]), end_point[2])
+
+    a_star(start_node, end_node, full_3D_binary)
+
     # Visualize environment
-    cmap.visualize_environment()
+    # cmap.visualize_environment()
 
 
 
