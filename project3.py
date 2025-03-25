@@ -1,7 +1,7 @@
 # Import NumPy for mathematical operations and typing for type hints
 import numpy as np
 from numpy.typing import NDArray
-from typing import Union, Callable, Dict, List
+from typing import Union, Callable, Dict, List, Tuple
 
 # Import heapq for A* algorithm
 import heapq
@@ -36,7 +36,7 @@ class Node():
 
     # Initialize node attributes
 
-    def __init__(self, location: tuple[Union[int, float], Union[int, float]], angle: int) -> None:
+    def __init__(self, location: Tuple[Union[int, float], Union[int, float]], angle: int) -> None:
 
         """
         Initializes the Node class.
@@ -65,7 +65,7 @@ class Node():
 
     # Define method for returning pose information
 
-    def get_pose(self) -> tuple[Union[int, float], Union[int, float], int]:
+    def get_pose(self) -> Tuple[Union[int, float], Union[int, float], int]:
 
         """
         Returns the pose information of the node.
@@ -81,7 +81,7 @@ class Node():
 
     # Define method for returning location
 
-    def get_location(self) -> tuple[Union[int, float], Union[int, float]]:
+    def get_location(self) -> Tuple[Union[int, float], Union[int, float]]:
 
         """
         Returns the location information of the node.
@@ -97,7 +97,7 @@ class Node():
 
     # Define method for returning angle
 
-    def get_angle(self) -> tuple[int, int]:
+    def get_angle(self) -> Tuple[int, int]:
 
         """
         Returns the angle information of the node.
@@ -113,7 +113,7 @@ class Node():
 
     # Define method for returning arrow representation
 
-    def get_arrow_rep(self) -> tuple[Union[int, float], Union[int, float], Union[int, float], Union[int, float]]:
+    def get_arrow_rep(self) -> Tuple[Union[int, float], Union[int, float], Union[int, float], Union[int, float]]:
 
         """
         Returns the arrow representation of the node.
@@ -627,7 +627,7 @@ class CMap():
 
     # Define method for converting pose to CMap frame
 
-    def to_cmap_frame(self, x: Union[int, float], y: Union[int, float], angle: int) -> tuple[int, int, int]:
+    def to_cmap_frame(self, x: Union[int, float], y: Union[int, float], angle: int) -> Tuple[int, int, int]:
 
         """
         Converts pose to the CMap frame.
@@ -710,7 +710,7 @@ class CMap():
 
 # Define function to check if a point is in an obstacle space
 
-def is_valid(loc: tuple, obstacle_arr: NDArray[np.uint8]) -> bool:
+def is_valid(loc: Tuple, obstacle_arr: NDArray[np.uint8]) -> bool:
     
     """
     Determines whether a location is a valid point in free space.
@@ -734,7 +734,7 @@ def is_valid(loc: tuple, obstacle_arr: NDArray[np.uint8]) -> bool:
 
 # Define function to get user input for point
 
-def get_point(loc: str,obstacle_arr: NDArray[np.uint8]) -> tuple:
+def get_point(loc: str,obstacle_arr: NDArray[np.uint8]) -> Tuple:
     
     """
     Prompts the user to enter a valid pose in the environment.
