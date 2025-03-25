@@ -481,11 +481,11 @@ def get_pose(loc: str, binary_map: NDArray[np.uint8]) -> Union[Tuple[int, int, i
         user_input = input(f"{loc} pose separated by commas in the format of: x, y, θ\n- x: 1 - 600\n- y: 1 - 250\n- θ: -60, -30, 0, 30, 60\nEnter: ").strip()
 
         # Return default start pose if input is empty
-        if user_input == "" and loc == "start":
+        if user_input == "" and loc == "Start":
             return (6,6,0)
         
         # Return default goal pose of  if input is empty
-        elif user_input == "" and loc == "goal":
+        elif user_input == "" and loc == "Goal":
             return (590,240,0)
 
         # Break user input into pose coordinates
@@ -546,10 +546,7 @@ def a_star(start: Node, goal: Node):
         start.action_5
     ]
 
-
-
     # Define function for computing C2G heuristic
-
     def heuristic(node: Node, goal: Node) -> float:
 
         """
@@ -565,8 +562,6 @@ def a_star(start: Node, goal: Node):
         # Return Euclidean distance between node and goal in 3D CMap space
         return np.sqrt((node_pose[0] - goal_pose[0]) ** 2 + (node_pose[1] - goal_pose[1]) ** 2 + (node_pose[2] - goal_pose[2]) ** 2)
     
-
-
     # Initialize open nodes and add start node
     open_nodes = []
     heapq.heappush(open_nodes, (0, start, heuristic(start, goal)))
@@ -574,8 +569,53 @@ def a_star(start: Node, goal: Node):
     # Initialize parent dictionary
     parent_dict = {start.get_discrete_pose(): None}
 
+    # Initialize cost dictionary
+    g_cost = {start.get_discrete_pose(): 0}
+
     # Initialize closed nodes set
     closed_nodes = set()
+
+    # A* search loop
+    while open_nodes:
+        # Pop node with lowest f-value
+        _, current_node, _ = heapq.heappop(open_nodes)
+
+        # If we reach the goal, return the path
+        if current_node.get_discrete_pose() == goal.get_discrete_pose():
+            path = []
+            while current_node.get_discrete_pose() is not None:
+                path.append(current_node)
+                current_node = parent_dict.get(current_node.get_discrete_pose(), None)
+            path.reverse()
+            return path  # Return the path from start to goal
+
+        # Add current node to closed set
+        closed_nodes.add(current_node.get_discrete_pose())
+
+        # Explore neighbors (possible actions)
+        for action in actions:
+            # Clone the current node for each action
+            new_node = Node(location=current_node.location, angle=current_node.angle)
+            action()  # Perform action to move the new node
+
+            # If the new node is not valid or already in closed nodes, skip
+            if new_node.get_discrete_pose() in closed_nodes or not is_valid(new_node.location, cmap.binary_map):
+                continue
+
+            # Compute g, f values
+            tentative_g = g_cost[current_node.get_discrete_pose()] + 1  # assuming cost of 1 per action
+            if new_node.get_discrete_pose() not in g_cost or tentative_g < g_cost[new_node.get_discrete_pose()]:
+                g_cost[new_node.get_discrete_pose()] = tentative_g
+                f_cost = tentative_g + heuristic(new_node, goal)
+
+                # Push to open list
+                heapq.heappush(open_nodes, (f_cost, new_node, heuristic(new_node, goal)))
+
+                # Set the parent of the new node
+                parent_dict[new_node.get_discrete_pose()] = current_node
+
+    # Return empty path if no solution found
+    return []
 
 
 
@@ -591,26 +631,22 @@ def main() -> None:
 
     # Get user input for start pose
     start_pose = get_pose("Start", binary_map)
+    start_node = Node(location=(start_pose[0], start_pose[1]), angle=start_pose[2])
 
-    # Loop until the goal point is different from the start point
-    while True:
-        
-        # Get user input for goal pose
-        end_pose = get_pose("Goal", binary_map)
-        
-        # Break loop if poses are different
-        if end_pose != start_pose:
-            break
-        
-        # Inform user that poses must be different
-        print("The goal point cannot be the same as the start point. Please try again.")
+    # Get user input for goal pose
+    goal_pose = get_pose("Goal", binary_map)
+    goal_node = Node(location=(goal_pose[0], goal_pose[1]), angle=goal_pose[2])
 
-    # Convert start and end poses to nodes
-    start_node = Node((start_pose[0], start_pose[1]), start_pose[2])
-    end_node = Node((end_pose[0], end_pose[1]), end_pose[2])
+    # Perform A* path planning
+    path = a_star(start_node, goal_node)
 
-    # Perform A* algorithm
-    a_star(start_node, end_node)
+    # Output the path
+    if path:
+        print("Path found:")
+        for node in path:
+            print(f"Location: {node.location}, Angle: {node.angle}")
+    else:
+        print("No path found.")
 
 
 
