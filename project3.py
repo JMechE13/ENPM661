@@ -728,7 +728,7 @@ def is_valid(loc: Tuple, obstacle_arr: NDArray[np.uint8]) -> bool:
         return False
     
     # Return True for 1 (free space) False for 0 (obstacle space)
-    return obstacle_arr[loc[0],loc[1]] == 1
+    return obstacle_arr[loc[1],loc[0]] == 1
 
 
 
