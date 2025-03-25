@@ -350,6 +350,9 @@ class Node():
         # Discretize orientation for CMap
         self.discrete_angle = int(angle / 30)
 
+        # Move distance of an action
+        self.move_distance = 0.5
+
     
     
     # Define method for formatting angle
@@ -446,7 +449,23 @@ class Node():
         """
 
         return round(float(self.location[0]), 2), round(float(self.location[1]), 2), int(self.discrete_angle)
+    
 
+
+    # Define method for moving
+
+    def move(self):
+
+        # Define start location
+        x0 = self.location[0]
+        y0 = self.location[1]
+        
+        # Define destination location
+        x_d = int(self.move_distance * np.cos(np.deg2rad(self.angle)))
+        y_d = int(self.move_distance * np.sin(np.deg2rad(self.angle)))
+
+        # Compute new position
+        self.location = (x0 + x_d, y0 + y_d)
 
 
 
@@ -531,20 +550,11 @@ def get_pose(loc: str, binary_map: NDArray[np.uint8]) -> Union[Tuple[int, int, i
 
 # Define function for A* algorithm
 
-def a_star(start: Node, goal: Node):
+def a_star(cmap: CMap, start: Node, goal: Node):
     
     """
     Performs A* path planning algorithm.
     """
-
-    # Define action set
-    actions = [
-        start.action_1,
-        start.action_2,
-        start.action_3,
-        start.action_4,
-        start.action_5
-    ]
 
     # Define function for computing C2G heuristic
     def heuristic(node: Node, goal: Node) -> float:
@@ -562,57 +572,80 @@ def a_star(start: Node, goal: Node):
         # Return Euclidean distance between node and goal in 3D CMap space
         return np.sqrt((node_pose[0] - goal_pose[0]) ** 2 + (node_pose[1] - goal_pose[1]) ** 2 + (node_pose[2] - goal_pose[2]) ** 2)
     
-    # Initialize open nodes and add start node
+    # Initialize open nodes
     open_nodes = []
-    heapq.heappush(open_nodes, (0, start, heuristic(start, goal)))
 
-    # Initialize parent dictionary
-    parent_dict = {start.get_discrete_pose(): None}
+    # Add start node formatted as (Total cost, C2C, C2G, Parent, Node)
+    open_nodes.append((0 + heuristic(start, goal), 0, heuristic(start, goal), None, start))
 
-    # Initialize cost dictionary
-    g_cost = {start.get_discrete_pose(): 0}
-
-    # Initialize closed nodes set
-    closed_nodes = set()
+    # Initialize closed nodes
+    closed_nodes = []
 
     # A* search loop
     while open_nodes:
-        # Pop node with lowest f-value
-        _, current_node, _ = heapq.heappop(open_nodes)
 
-        # If we reach the goal, return the path
-        if current_node.get_discrete_pose() == goal.get_discrete_pose():
+        # Sort open nodes by total estimated cost
+        open_nodes.sort(key=lambda x: x[0])
+
+        # Retrieve node information
+        current_node_info = open_nodes.pop(0)
+
+        # Separate node information
+        current_total_cost: float = current_node_info[0]
+        current_C2C: float = current_node_info[1]
+        current_C2G: float = current_node_info[2]
+        current_parent: Union[None, Node] = current_node_info[3]
+        current_node: Node = current_node_info[4]
+
+        # If goal is reached, return path
+        if heuristic(current_node, goal) < 3.0:
+            
+            # Initialize path
             path = []
-            while current_node.get_discrete_pose() is not None:
+
+            # Loop through all nodes
+            while current_node is not None:
+
+                # Add node to path
                 path.append(current_node)
-                current_node = parent_dict.get(current_node.get_discrete_pose(), None)
+
+                # Find current node in closed node list
+                current_node_info = next(item for item in closed_nodes if item[4] == current_node)
+
+                # Get the parent node
+                current_parent = current_node_info[3]
+
+                # Mark the parent node as the current node for next iteration
+                current_node = current_parent
+
+            # Reverse path
             path.reverse()
-            return path  # Return the path from start to goal
+
+            # Return the path
+            return path
 
         # Add current node to closed set
-        closed_nodes.add(current_node.get_discrete_pose())
+        closed_nodes.append(current_node)
 
-        # Explore neighbors (possible actions)
-        for action in actions:
-            # Clone the current node for each action
+        # Loop through possible actions
+        for action in [current_node.action_1, current_node.action_2, current_node.action_3, current_node.action_4, current_node.action_5]:
+            
+            # Clone the current node
             new_node = Node(location=current_node.location, angle=current_node.angle)
-            action()  # Perform action to move the new node
+
+            # Perform action
+            action()
 
             # If the new node is not valid or already in closed nodes, skip
-            if new_node.get_discrete_pose() in closed_nodes or not is_valid(new_node.location, cmap.binary_map):
+            if new_node in closed_nodes or not is_valid(new_node.location, cmap.binary_map):
                 continue
 
-            # Compute g, f values
-            tentative_g = g_cost[current_node.get_discrete_pose()] + 1  # assuming cost of 1 per action
-            if new_node.get_discrete_pose() not in g_cost or tentative_g < g_cost[new_node.get_discrete_pose()]:
-                g_cost[new_node.get_discrete_pose()] = tentative_g
-                f_cost = tentative_g + heuristic(new_node, goal)
+            # Compute C2C, C2G
+            new_C2C = current_C2C + 1
+            new_C2G = heuristic(new_node, goal)
 
-                # Push to open list
-                heapq.heappush(open_nodes, (f_cost, new_node, heuristic(new_node, goal)))
-
-                # Set the parent of the new node
-                parent_dict[new_node.get_discrete_pose()] = current_node
+            # Add new node to open list
+            open_nodes.append((new_C2C + new_C2G, new_C2C, new_C2G, current_node, new_node))
 
     # Return empty path if no solution found
     return []
@@ -638,15 +671,15 @@ def main() -> None:
     goal_node = Node(location=(goal_pose[0], goal_pose[1]), angle=goal_pose[2])
 
     # Perform A* path planning
-    path = a_star(start_node, goal_node)
+    path = a_star(cmap, start_node, goal_node)
 
-    # Output the path
-    if path:
-        print("Path found:")
-        for node in path:
-            print(f"Location: {node.location}, Angle: {node.angle}")
-    else:
-        print("No path found.")
+    # # Output the path
+    # if path:
+    #     print("Path found:")
+    #     for node in path:
+    #         print(f"Location: {node.location}, Angle: {node.angle}")
+    # else:
+    #     print("No path found.")
 
 
 

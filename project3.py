@@ -1,282 +1,25 @@
-# Import NumPy for mathematical operations and typing for type hints
+# Import NumPy for mathematical operations
 import numpy as np
+
+# Import type hinting
 from numpy.typing import NDArray
 from typing import Union, Callable, Dict, List, Tuple
 
-# Import heapq for A* algorithm
+# Import HeapQ for A* algorithm
 import heapq
 
-# Import time for analyzing computation time
-import time
-
-# Import OpenCV for visualization
-import cv2
-
-# TODO - A* as function
-# TODO - Define action set
-# TODO - Result visualization
-# TODO - Visited nodes function
-# TODO - Is obstacle function
-
-
-
-# Create class for node information
-
-class Node():
-
-    """
-    Class for storing and processing node information.
-
-    Attributes:
-        location (tuple[Union[int, float], Union[int, float]]): Location of the node.
-        angle (int): Angle of the node.
-        arrow_rep_length (float): Visual arrow length.
-        move_distance (int): Move action length.
-    """
-
-    # Initialize node attributes
-
-    def __init__(self, location: Tuple[Union[int, float], Union[int, float]], angle: int) -> None:
-
-        """
-        Initializes the Node class.
-
-        Args:
-            location (tuple[Union[int, float], Union[int, float]]): Location of the node.
-            angle (int): Angle of the node.
-        """
-
-        # Define pose attributes
-        self.location = location
-        self.angle = angle
-
-        self.discrete_angle = int(angle / 30)
-
-        # Visual arrow length
-        self.arrow_rep_length = 0.2
-
-        # Move action length
-        self.move_distance = 0.5
-
-        # Format angle
-        self.format_angle()
-
-
-
-    # Define method for returning pose information
-
-    def get_pose(self) -> Tuple[Union[int, float], Union[int, float], int]:
-
-        """
-        Returns the pose information of the node.
-
-        Returns:
-            tuple[Union[int, float], Union[int, float], int]: Pose information of the node.
-        """
-
-        # Return pose information
-        return round(float(self.location[0]), 2), round(float(self.location[1]), 2), int(self.angle)
-    
-
-
-    # Define method for returning location
-
-    def get_location(self) -> Tuple[Union[int, float], Union[int, float]]:
-
-        """
-        Returns the location information of the node.
-
-        Returns:
-            tuple[Union[int, float], Union[int, float]]: Location information of the node.
-        """
-
-        # Return location information
-        return self.location
-    
-
-
-    # Define method for returning angle
-
-    def get_angle(self) -> Tuple[int, int]:
-
-        """
-        Returns the angle information of the node.
-
-        Returns:
-            int: Angle information of the node.
-        """
-
-        # Return angle information
-        return self.angle, self.discrete_angle
-    
-
-
-    # Define method for returning arrow representation
-
-    def get_arrow_rep(self) -> Tuple[Union[int, float], Union[int, float], Union[int, float], Union[int, float]]:
-
-        """
-        Returns the arrow representation of the node.
-
-        Returns:
-            tuple[Union[int, float], Union[int, float]]: Arrow representation of the node.
-        """
-
-        # Calculate arrow end point
-        x_end = self.location[0] + self.arrow_rep_length * np.cos(np.radians(self.angle))
-        y_end = self.location[1] + self.arrow_rep_length * np.sin(np.radians(self.angle))
-
-        # Return arrow start and end points
-        return self.location[0], self.location[1], x_end, y_end
-    
-
-
-    # Define method for performing action 1
-
-    def action_1(self):
-
-        # Change heading
-        delta_angle = 60
-        self.angle += delta_angle
-
-        delta_discrete = 2
-        self.discrete_angle += delta_discrete
-
-        # Move
-        self.move()
-
-    
-
-    # Define method for performing action 2
-
-    def action_2(self):
-
-        # Change heading
-        delta_angle = 30
-        self.angle += delta_angle
-
-        delta_discrete = 1
-        self.discrete_angle += delta_discrete
-
-
-
-        # Move
-        self.move()
-
-    
-
-    # Define method for performing action 3
-
-    def action_3(self):
-
-        # Move
-        self.move()
-
-    
-
-    # Define method for performing action 4
-
-    def action_4(self):
-
-        # Change heading
-        delta_angle = -30
-        self.angle += delta_angle
-
-        # Move
-        self.move()
-
-
-
-    # Define method for performing action 5
-
-    def action_5(self):
-
-        # Change heading
-        delta_angle = -60
-        self.angle += delta_angle
-
-        # Move
-        self.move()
-
-    
-
-    # Define method for moving
-
-    def move(self):
-
-        # Start location
-        x_0 = self.location[0]
-        y_0 = self.location[1]
-
-        # End location
-        x_d = self.move_distance * np.cos(np.radians(self.angle))
-        y_d = self.move_distance * np.sin(np.radians(self.angle))
-
-        # Update location
-        self.location = (x_0 + x_d, y_0 + y_d)
-
-        # Format angle
-        self.format_angle()
-
-    
-
-    # Define method for formatting angle
-
-    def format_angle(self) -> None:
-
-        """
-        Formats the angle to be between -180 and 180 degrees.
-        """
-
-        # Format discrete_angle to be on a scale from 0-11
-        if self.discrete_angle > 11:
-            self.discrete_angle = self.discrete_angle % 12
-        elif self.discrete_angle < 0:
-            self.discrete_angle = 12 + (self.discrete_angle % 12)
-
-
-    
-    # Define method to return node information
-
-    def __str__(self) -> str:
-
-        """
-        Returns the string representation of the node.
-
-        Returns:
-            str: String representation of the node.
-        """
-
-        # Return node information
-        return f"Position: ({self.location[0]}, {self.location[1]}) mm -- Angle: {self.angle} deg"
-
-
-
-# Create class for representing 3D configuration map
+# Create configuration map class
 
 class CMap():
 
     """
-    Class for storing and processing configuration map information.
-
-    Attributes:
-        x_dim (int): X-dimension of the environment.
-        y_dim (int): Y-dimension of the environment.
-        z_dim (int): Z-dimension of the environment.
-        c_map (NDArray[np.uint8]): Configuration map of the environment.
+    Class for storing and processing configuration map information
     """
 
     # Initialize CMap attributes
 
-    def __init__(self) -> None:
-
-        """
-        Initializes the CMap class.
-
-        Args:
-            Node (Node): Node object to be checked.
-        """
-
+    def __init__(self):
+        
         # Assign environment dimensions
         self.x_dim = 1200 # 600 mm environment with 0.5 mm resolution
         self.y_dim = 500 # 250 mm environment with 0.5 mm resolution
@@ -547,220 +290,223 @@ class CMap():
 
         }
 
+
+
+    # Define method for discretizing environment
+    def discretize(self, x_lim: Tuple[int, int]=(0, 600), y_lim: Tuple[int, int]=(0, 250)) -> Tuple[NDArray[np.uint8], NDArray[np.uint8], NDArray[np.uint8]]: 
+
+        """
+        Converts algebraic inequality environment into discretized environment. Creates an additional 3D configuration space.
+        """
+
+        # Initialize grid as free space
+        binary_map = np.ones((y_lim[1], x_lim[1]), dtype=np.uint8)
+
+        # Loop through x values
+        for x in range(x_lim[0], x_lim[1]):
+
+            # Loop through y values
+            for y in range(y_lim[0], y_lim[1]):
+
+                # Check if location is inside clearances
+                if any(all(constraint(x, y) for constraint in constraints) for constraints in self.clearances.values()):
+
+                    # Mark as an obstacle
+                    binary_map[y, x] = 0
+
+        # Scale grid to match 0.5 mm resolution
+        binary_map_scaled = np.repeat(np.repeat(binary_map, 2, axis=0), 2, axis=1)
+
+        # Stack grid across third dimension to represent angle-space
+        binary_map_3D = np.stack([binary_map_scaled] * 3, axis=-1)
+
+        # Store non-scaled, scaled,  and 3D environments
+        self.binary_map = binary_map
+        self.binary_map_scaled = binary_map_scaled
+        self.binary_map_3D = binary_map_3D
+
+        # Return maps
+        return binary_map, binary_map_scaled, binary_map_3D
+
+
+
+class Node():
+    """
+    Class for storing and processing node information.
+    """
+
+    # Initialize Node attributes
+
+    def __init__(self, location: Tuple[Union[int, float], Union[int, float]], angle: int) -> None:
+
+        """
+        Initializes the Node class.
+        """
+
+        # Define pose attributes
+        self.location = location
+        self.angle = angle
+
+        # Discretize orientation for CMap
+        self.discrete_angle = int(angle / 30)
+
+        self.move_distance = 0.5
+
+    
+    
+    # Define method for formatting angle
+
+    def format_angle(self, angle: int, discrete_angle: int):
+
+        """
+        Formats angle to keep within 0 - 359 degrees. Discretizes angle to 30 degree resolution.
+        """
+
+        # Normalize angle to be within 0 - 359 degrees
+        self.angle = angle % 360
+
+        # Normalize discrete angle to be within 0 - 11 steps
+        self.discrete_angle = discrete_angle % 12
+
     
 
-    def discretize(self, xlim=(0, 600), ylim=(0, 250)) -> NDArray[np.uint8]:
+    # Define methods for action set
+
+    def action_1(self):
 
         """
-        Converts algebraic inequality environment into a discretized environment.
-
-        Args:
-            xlim (tuple[int, int]): X-limits of environment. Defaults to (0, 600).
-            ylim (tuple[int, int]): Y-limits of environment. Defaults to (0, 250).
-
-        Returns:
-            NDArray[np.uint8]: Binary grid of the discretized environment.
-                               1 = Free space, 0 = Obstacle.
+        Defines an action for a 60 degree CCW movement.
         """
+
+        # Change heading
+        self.angle += 60
+        self.discrete_angle += 2
+        self.format_angle(self.angle, self.discrete_angle)
+
+        # Move
+        self.move()
+
+    def action_2(self):
         
-        # Initialize grid as free space (1)
-        grid = np.ones((ylim[1], xlim[1]), dtype=np.uint8)
-
-        # Loop through x-values
-        for x in range(xlim[0], xlim[1]):
-            # Loop through y-values
-            for y in range(ylim[0], ylim[1]):
-                # Check if the (x, y) point is inside any obstacle
-                if any(all(constraint(x, y) for constraint in constraints) for constraints in self.obstacles.values()):
-                    grid[y, x] = 0  # Mark as obstacle
-
-        # Scale the grid 2x to match
-        scaled_grid = np.repeat(np.repeat(grid, 2, axis=0), 2, axis=1)
-
-        # Stack scaled grid across a 3rd dimension 3 times
-        full_3D_binary = np.stack([scaled_grid] * 3, axis=-1)
-
-        # Store scaled binary map and 3D
-        self.binary_map = scaled_grid
-        self.binary_3D_map = full_3D_binary
-
-        return scaled_grid, full_3D_binary
-
-
-
-    # Define method for checking if a node already exists
-
-    def check(self, Node: Node) -> int:
-
         """
-        Checks if a node already exists in the configuration map.
-
-        Args:
-            Node (Node): Node object to be checked.
-
-        Returns:
-            int: 1 if node is valid, 0 if node is invalid.
+        Defines an action for a 30 degree CCW movement.
         """
 
-        # Get pose
-        x, y, angle = Node.get_pose()
+        # Change heading
+        self.angle += 30
+        self.discrete_angle += 1
+        self.format_angle(self.angle, self.discrete_angle)
 
-        # Convert pose to CMap frame
-        x_idx, y_idx, angle_idx = self.to_cmap_frame(x, y, angle)
+        # Move
+        self.move()
 
-        # If node config does not exist
-        if self.c_map[x_idx, y_idx, angle_idx] == 0:
-
-            # Add to CMap
-            self.c_map[x_idx, y_idx, angle_idx] = 1
-
-            # Return 1 as valid
-            return 1
+    def action_3(self):
         
-        # If node does exist
-        else:
-
-            # Return 0 as invalid
-            return 0
-    
-
-
-    # Define method for converting pose to CMap frame
-
-    def to_cmap_frame(self, x: Union[int, float], y: Union[int, float], angle: int) -> Tuple[int, int, int]:
-
         """
-        Converts pose to the CMap frame.
-
-        Args:
-            x (Union[int, float]): X-coordinate of the pose.
-            y (Union[int, float]): Y-coordinate of the pose.
-            angle (int): Angle of the pose.
-
-        Returns:
-            tuple[int, int, int]: _description_
+        Defines an action for a 0 degree movement.
         """
 
-        # Convert x and y to CMap frame
-        x_idx = int(np.round(x * 2))
-        y_idx = int(np.round(y * 2))
+        # Move
+        self.move()
 
-        # Convert angle to CMap frame
-        angle_idx = int(np.ceil(angle / 30.0 + 6) - 1)
-
-        # Return CMap frame
-        return x_idx, y_idx, angle_idx
-    
-
-
-    # Define method to visualize environment
-
-    def visualize_environment(self) -> None:
-    
-        """
-        Displays the state of the environment.
-
-        Args:
-            obstacles (Dict[str, List[Callable[[Union[int, float], Union[int, float]], bool]]]): Algebraic functions bounding obstacles.
-            clearances (Dict[str, List[Callable[[Union[int, float], Union[int, float]], bool]]]): Algebraic functions bounding obstacle clearances.
-        """
+    def action_4(self):
         
-        # Create 600 x 250 blank white frame
-        frame = np.ones((250, 600, 3), dtype=np.uint8) * 255
+        """
+        Defines an action for a 30 degree CW movement.
+        """
 
-        # Loop through obstacle clearances
-        for name, conditions in self.clearances.items():
-            
-            # Loop through x values
-            for x in range(600):
-                
-                # Loop through y values
-                for y in range(250):
-                    
-                    # If location fits all algebraic conditions
-                    if all(cond(x, y) for cond in conditions):
-                        
-                        # Mark clearance location gray
-                        frame[y, x] = (150, 150, 150)
+        # Change heading
+        self.angle -= 30
+        self.discrete_angle -= 1
+        self.format_angle(self.angle, self.discrete_angle)
 
-        # Loop through obstacles
-        for name, conditions in self.obstacles.items():
-            
-            # Loop through x values
-            for x in range(600):
-                
-                # Loop through y values
-                for y in range(250):
-                    
-                    # If location fits all algebraic conditions
-                    if all(cond(x, y) for cond in conditions):
-                        
-                        # Mark obstacle location black
-                        frame[y, x] = (0, 0, 0)
+        # Move
+        self.move()
 
-        # Flip frame to match environment coordinate system
-        frame = cv2.flip(frame, 0)
+    def action_5(self):
+        
+        """
+        Defines an action for a 60 degree CW movement.
+        """
 
-        # Display environment
-        cv2.imshow("Environment", frame)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
-    
+        # Change heading
+        self.angle -= 60
+        self.discrete_angle -= 2
+        self.format_angle(self.angle, self.discrete_angle)
+
+        # Move
+        self.move()
     
 
-# Define function to check if a point is in an obstacle space
 
-def is_valid(loc: Tuple, obstacle_arr: NDArray[np.uint8]) -> bool:
+    # Define method for returning node pose
+
+    def get_discrete_pose(self) -> Tuple[Union[int, float], Union[int, float], int]:
+
+        """
+        Returns the pose information for the node
+        """
+
+        return round(float(self.location[0]), 2), round(float(self.location[1]), 2), int(self.discrete_angle)
     
+
+
+    # Define method for moving
+
+    def move(self):
+
+        # Define start location
+        x0 = self.location[0]
+        y0 = self.location[1]
+        
+        # Define destination location
+        x_d = int(self.move_distance * np.cos(np.deg2rad(self.angle)))
+        y_d = int(self.move_distance * np.sin(np.deg2rad(self.angle)))
+
+        # Compute new position
+        self.location = (x0 + x_d, y0 + y_d)
+
+
+
+
+# Define function for determining whether a point is valid
+
+def is_valid(loc: Tuple[int, int], binary_map: NDArray[np.uint8]) -> bool:
+
     """
     Determines whether a location is a valid point in free space.
-
-    Args:
-        loc (tuple): Location to be tested.
-        obstacle_arr (NDArray[np.uint8]): Discretized, binary array of the environment state.
-
-    Returns:
-        bool: True if point is valid, False otherwise.
     """
-    
+
     # If location is out of environment bounds
     if loc[0] < 0 or loc[0] > 599 or loc[1] < 0 or loc[1] > 249:
         return False
     
     # Return True for 1 (free space) False for 0 (obstacle space)
-    return obstacle_arr[loc[1],loc[0]] == 1
+    return binary_map[loc[1], loc[0]] == 1
 
 
 
-# Define function to get user input for point
+# Define function to get user input for a pose
 
-def get_point(loc: str,obstacle_arr: NDArray[np.uint8]) -> Tuple:
-    
+def get_pose(loc: str, binary_map: NDArray[np.uint8]) -> Union[Tuple[int, int, int], None]:
+
     """
-    Prompts the user to enter a valid pose in the environment.
-
-    Args:
-        loc (str): Definition of state. "Start" or "Goal".
-        obstacle_arr (NDArray[np.uint8]): Discretized, binary array of the environment state.
-
-    Returns:
-        tuple: User-defined pose in the format of (x, y, θ).
+    Gathers user input for a pose.
     """
-    
-    # Loop until inputs are valid
+
     while True:
-        
+
         # Gather user input
         user_input = input(f"{loc} pose separated by commas in the format of: x, y, θ\n- x: 1 - 600\n- y: 1 - 250\n- θ: -60, -30, 0, 30, 60\nEnter: ").strip()
-        
+
         # Return default start pose if input is empty
-        if user_input == "" and loc == "start":
+        if user_input == "" and loc == "Start":
             return (6,6,0)
         
         # Return default goal pose of  if input is empty
-        elif user_input == "" and loc == "goal":
+        elif user_input == "" and loc == "Goal":
             return (590,240,0)
-        
+
         # Break user input into pose coordinates
         parts = user_input.split(",")
         
@@ -774,14 +520,14 @@ def get_point(loc: str,obstacle_arr: NDArray[np.uint8]) -> Tuple:
                 theta = int(parts[2].strip())
                 
                 # If coordinates are within bounds
-                if 1<=x<=600 and 1<=y<=250 and theta in [-60,-30,0,30,60]:
+                if 1<=x<=600 and 1<=y<=250 and theta in [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330, 360]:
                     
                     # Convert positional coordinates to 1 - n scale
                     x = x-1
                     y = y-1
                     
                     # If location is not an obstacle, return pose
-                    if is_valid((x,y), obstacle_arr):
+                    if is_valid((x,y), binary_map):
                         return (x,y,theta)
                     
                     # Inform user of invalid location
@@ -797,84 +543,133 @@ def get_point(loc: str,obstacle_arr: NDArray[np.uint8]) -> Tuple:
                 print("Invalid input. Please enter integers for x, y, and theta.")
         
         # Inform user of invalid input dimension
-        else:
-            print("Invalid input. Please enter exactly three integers separated by a comma.")
+            else:
+                print("Invalid input. Please enter exactly three integers separated by a comma.")
 
 
 
-# Define function for performing A* algorithm
+# Define function for A* algorithm
 
-def a_star(start: Node, goal: Node, binary_map: NDArray[np.uint8]):
+def a_star(start: Node, goal: Node, cmap: CMap):
+    
+    """
+    Performs A* path planning algorithm.
+    """
 
     # Define action set
     actions = [
-        lambda node: node.action_1(),
-        lambda node: node.action_2(),
-        lambda node: node.action_3(),
-        lambda node: node.action_4(),
-        lambda node: node.action_5()
+        start.action_1,
+        start.action_2,
+        start.action_3,
+        start.action_4,
+        start.action_5
     ]
 
-    # Define the heuristic
+    # Define function for computing C2G heuristic
     def heuristic(node: Node, goal: Node) -> float:
-        x1, y1, angle1 = node.get_pose()
-        x2, y2, angle2 = goal.get_pose()
-        return np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2 + (angle2 - angle1) ** 2)
 
-    # Initialize open nodes
-    open_list = []
+        """
+        Computes the C2G heuristic for a node.
+        """
+        
+        # Get pose information for current node
+        node_pose = node.get_discrete_pose()
 
-    # Push start node into queue (C2C, Node, C2G)
-    heapq.heappush(open_list, (0, start, heuristic(start, goal)))
+        # Get pose information for goal node
+        goal_pose = goal.get_discrete_pose()
 
-    print(open_list)
+        # Return Euclidean distance between node and goal in 3D CMap space
+        return np.sqrt((node_pose[0] - goal_pose[0]) ** 2 + (node_pose[1] - goal_pose[1]) ** 2 + (node_pose[2] - goal_pose[2]) ** 2)
+    
+    # Initialize open nodes and add start node
+    open_nodes = []
+    heapq.heappush(open_nodes, (0, start, heuristic(start, goal)))
 
-    # Initialize parent dictionary to reconstruct the path
-    parents = {start.get_pose(): None}
+    # Initialize parent dictionary
+    parent_dict = {start.get_discrete_pose(): None}
 
-    # Initialize closed set to keep track of visited nodes
-    closed_set = set()
+    # Initialize cost dictionary
+    g_cost = {start.get_discrete_pose(): 0}
+
+    # Initialize closed nodes set
+    closed_nodes = set()
+
+    # A* search loop
+    while open_nodes:
+        # Pop node with lowest f-value
+        _, current_node, _ = heapq.heappop(open_nodes)
+
+        # If we reach the goal, return the path
+        if current_node.get_discrete_pose() == goal.get_discrete_pose():
+            path = []
+            while current_node.get_discrete_pose() is not None:
+                path.append(current_node)
+                current_node = parent_dict.get(current_node.get_discrete_pose(), None)
+            path.reverse()
+            return path  # Return the path from start to goal
+
+        # Add current node to closed set
+        closed_nodes.add(current_node.get_discrete_pose())
+
+        # Explore neighbors (possible actions)
+        for action in actions:
+            # Clone the current node for each action
+            new_node = Node(location=current_node.location, angle=current_node.angle)
+            action()  # Perform action to move the new node
+
+            # If the new node is not valid or already in closed nodes, skip
+            if new_node.get_discrete_pose() in closed_nodes or not is_valid(new_node.location, cmap.binary_map):
+                continue
+
+            # Compute g, f values
+            tentative_g = g_cost[current_node.get_discrete_pose()] + 1  # assuming cost of 1 per action
+            if new_node.get_discrete_pose() not in g_cost or tentative_g < g_cost[new_node.get_discrete_pose()]:
+                g_cost[new_node.get_discrete_pose()] = tentative_g
+                f_cost = tentative_g + heuristic(new_node, goal)
+
+                # Push to open list
+                heapq.heappush(open_nodes, (f_cost, new_node, heuristic(new_node, goal)))
+
+                # Set the parent of the new node
+                parent_dict[new_node.get_discrete_pose()] = current_node
+
+    # Return empty path if no solution found
+    return []
 
 
 
 # Define main execution
 
-def main():
+def main() -> None:
 
-    # Create CMap instance
+    # Create instance of configuration map
     cmap = CMap()
 
-    # Discretize environment
-    binary_map, full_3D_binary = cmap.discretize()
+    # Discretize the environment
+    binary_map, _, _ = cmap.discretize()
 
     # Get user input for start pose
-    start_point = get_point("Start", binary_map)
-    
-    # Loop until the goal point is different from the start point
-    while True:
-        
-        # Get user input for goal pose
-        end_point = get_point("Goal", binary_map)
-        
-        # Break loop if poses are different
-        if end_point != start_point:
-            break
-        
-        # Inform user that poses must be different
-        print("The goal point cannot be the same as the start point. Please try again.")
+    start_pose = get_pose("Start", binary_map)
+    start_node = Node(location=(start_pose[0], start_pose[1]), angle=start_pose[2])
 
-    # Convert start and end points to nodes
-    start_node = Node((start_point[0], start_point[1]), start_point[2])
-    end_node = Node((end_point[0], end_point[1]), end_point[2])
+    # Get user input for goal pose
+    goal_pose = get_pose("Goal", binary_map)
+    goal_node = Node(location=(goal_pose[0], goal_pose[1]), angle=goal_pose[2])
 
-    a_star(start_node, end_node, full_3D_binary)
+    # Perform A* path planning
+    path = a_star(start_node, goal_node, cmap)
 
-    # Visualize environment
-    # cmap.visualize_environment()
+    # Output the path
+    if path:
+        print("Path found:")
+        for node in path:
+            print(f"Location: {node.location}, Angle: {node.angle}")
+    else:
+        print("No path found.")
 
 
 
-# Execute the script
+# Execute script
 
 if __name__ == "__main__":
     main()
