@@ -1,8 +1,78 @@
 import numpy as np
 import heapq as hq
+import cv2
 
-from typing import Dict, Tuple, List
+from typing import Dict, Tuple, List, Callable, Union
 from numpy.typing import NDArray
+
+
+
+# Define function for visualizing environment
+
+import numpy as np
+import cv2
+
+def visualize_environment(obstacles, clearances, start, goal, path):
+    """
+    Displays the environment state efficiently with path arrows.
+
+    Args:
+        obstacles (Dict[str, List[Callable[[float, float], bool]]]): Algebraic functions bounding obstacles.
+        clearances (Dict[str, List[Callable[[float, float], bool]]]): Algebraic functions bounding obstacle clearances.
+        start (Tuple[int, int, int]): Start position (x, y, θ).
+        goal (Tuple[int, int, int]): Goal position (x, y, θ).
+        path (List[Tuple[int, int, int]]): Optimal path from A*.
+        explored_nodes (List[Tuple[int, int, int]]): Explored nodes from A*.
+    """
+
+    # Create a blank 600x250 white frame
+    frame = np.ones((250, 600, 3), dtype=np.uint8) * 255
+
+    # Generate meshgrid of all (x, y) coordinates
+    x_grid, y_grid = np.meshgrid(np.arange(600), np.arange(250))
+
+    # Compute clearance areas in bulk
+    for conditions in clearances.values():
+        mask = np.ones_like(x_grid, dtype=bool)
+        for cond in conditions:
+            mask &= cond(x_grid, y_grid)  
+        frame[mask] = (150, 150, 150)  # Gray for clearance
+
+    # Compute obstacle areas efficiently
+    obstacle_mask = np.zeros_like(x_grid, dtype=bool)
+    for conditions in obstacles.values():
+        temp_mask = np.ones_like(x_grid, dtype=bool)
+        for cond in conditions:
+            temp_mask &= cond(x_grid, y_grid)
+        obstacle_mask |= temp_mask  
+    frame[np.where(obstacle_mask)] = (0, 0, 0)  # Black for obstacles
+
+    # Draw the optimal path using arrows
+    for i in range(len(path) - 1):
+        x1, y1, theta1 = path[i]
+        x2, y2, theta2 = path[i + 1]
+        
+        # Compute arrow direction based on theta
+        dx = int(5 * np.cos(np.radians(theta2 * 30)))  # Scale for better visibility
+        dy = int(5 * np.sin(np.radians(theta2 * 30)))
+
+        # Draw arrow from (x1, y1) to (x2, y2)
+        cv2.arrowedLine(frame, (int(x1), int(y1)), (int(x2), int(y2)), (255, 0, 0), 1, tipLength=0.75)
+
+    # Draw start and goal points
+    cv2.circle(frame, (int(start[0]), int(start[1])), 2, (0, 0, 255), -1)  # Blue (start)
+    cv2.circle(frame, (int(goal[0]), int(goal[1])), 2, (0, 255, 0), -1)  # Yellow (goal)
+
+    # Flip frame to match coordinate system
+    frame = cv2.flip(frame, 0)
+
+    #frame = cv2.resize(frame, None, fx=2, fy=2, interpolation=cv2.INTER_NEAREST)
+
+    # Display the environment with path arrows
+    cv2.imshow("A* Path Visualization", frame)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
 
 
 
@@ -90,7 +160,7 @@ def a_star(start: Tuple[float, float, int], goal: Tuple[float, float, int], clea
     def heuristic(node: Tuple[float, float, int], goal: Tuple[float, float, int]) -> float:
 
         # Return Euclidean distance between node and goal in 3D CMap space
-        return np.sqrt((node[0] - goal[0]) ** 2 + (node[1] - goal[1]) ** 2) + (2 * min(abs(node[2] - goal[2]), 12 - abs(node[2] - goal[2])))
+        return np.sqrt((node[0] - goal[0]) ** 2 + (node[1] - goal[1]) ** 2)
 
 
 
@@ -138,21 +208,11 @@ def a_star(start: Tuple[float, float, int], goal: Tuple[float, float, int], clea
             new_x = x + move * np.cos(np.deg2rad(new_theta * 30))
             new_y = y + move * np.sin(np.deg2rad(new_theta * 30))
 
-            # Round positions
-            rounded_x = int(round(new_x))
-            rounded_y = int(round(new_y))
+            # If neighbors are valid locations
+            if is_valid(new_x, new_y, clearances):
 
-            # If neighbor is within map bounds
-            if 0 <= rounded_x <= map_size[0] and 0 <= rounded_y <= map_size[1]:
-
-                # If point hasn't been visited and is a valid location
-                if visited[rounded_y, rounded_x, new_theta] == 0 and is_valid(rounded_x, rounded_y, clearances):
-
-                    # Mark location as visited
-                    visited[rounded_y, rounded_x, new_theta] = 1
-                
-                    # Add location to neighbors
-                    neighbors.append((new_x, new_y, new_theta))
+                # Add location to neighbors
+                neighbors.append((new_x, new_y, new_theta))
 
         # Return list of neighbors
         return neighbors
@@ -184,11 +244,13 @@ def a_star(start: Tuple[float, float, int], goal: Tuple[float, float, int], clea
         current_node_info = hq.heappop(open_list)
         current_node: Tuple[float, float, int] = current_node_info[1]
 
+        print(f"Closing node: {current_node}")
+
         # Add node to closed list
         closed_nodes.append(current_node)
 
         # Determine if solution is found
-        if heuristic(current_node, goal) <= 5.0 and current_node[2] == goal[2]:
+        if heuristic(current_node, goal) <= 1.0 and current_node[2] == goal[2]:
             
             print(f"Found solution at {current_node}")
 
@@ -197,8 +259,6 @@ def a_star(start: Tuple[float, float, int], goal: Tuple[float, float, int], clea
         
         # Loop through neighbors
         for neighbor in get_neighbors(current_node, visited, clearances, actions):
-
-            print(f"Exploring node: {neighbor}")
 
             # Add movement cost to node's C2C
             new_cost = cost_map[current_node] + 1
@@ -492,11 +552,11 @@ def main():
     
     # Define action set
     actions = [
-        (0.5, 60),
-        (0.5, 30),
-        (0.5, 0),
-        (0.5, -30),
-        (0.5, -60)
+        (5, 60),
+        (5, 30),
+        (5, 0),
+        (5, -30),
+        (5, -60)
     ]
 
     # Gather start pose
@@ -508,6 +568,8 @@ def main():
     path = a_star(start, goal, clearances, actions)
 
     print(path)
+
+    visualize_environment(obstacles, clearances, start, goal, path)
 
 
 # Execute script
