@@ -514,7 +514,10 @@ def main() -> None:
     if path:
         print("Path found:")
         for node in path:
-            print(f"Location: {node[0]}, {node[1]}, Angle: {node[2]}")
+            ang = node[2]*30
+            if ang>180:
+                ang = ang - 360
+            print(f"Location: {node[0]+1}, {node[1]+1}, Angle: {ang}")
     else:
         print("No path found.")
 
