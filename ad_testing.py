@@ -286,7 +286,11 @@ class CMap():
 
         }
 
+        self.visual_history = []
 
+        self.current_map = None
+
+        self.initialize_visual_map()
 
     # Define method for discretizing environment
     def discretize(self, x_lim: Tuple[int, int]=(0, 600), y_lim: Tuple[int, int]=(0, 250)) -> Tuple[NDArray[np.uint8], NDArray[np.uint8], NDArray[np.uint8]]: 
@@ -324,7 +328,7 @@ class CMap():
         # Return maps
         return binary_map, binary_map_scaled, binary_map_3D
 
-    def visualize_environment(self, start, goal, path):
+    def visualize_final_path(self, start, goal, path):
         """
         Displays the environment state efficiently with path arrows.
 
@@ -382,10 +386,86 @@ class CMap():
 
         #frame = cv2.resize(frame, None, fx=2, fy=2, interpolation=cv2.INTER_NEAREST)
 
+        self.current_map = frame
+        self.visual_history.append(frame)
+        self.save_frame(frame)
+
         # Display the environment with path arrows
         cv2.imshow("A* Path Visualization", frame)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
+
+    def initialize_visual_map(self):
+
+        # Create a blank 600x250 white frame
+        frame = np.ones((250, 600, 3), dtype=np.uint8) * 255
+
+        # Generate meshgrid of all (x, y) coordinates
+        x_grid, y_grid = np.meshgrid(np.arange(600), np.arange(250))
+
+        # Compute clearance areas in bulk
+        for conditions in self.clearances.values():
+            mask = np.ones_like(x_grid, dtype=bool)
+            for cond in conditions:
+                mask &= cond(x_grid, y_grid)  
+            frame[mask] = (150, 150, 150)  # Gray for clearance
+
+        # Compute obstacle areas efficiently
+        obstacle_mask = np.zeros_like(x_grid, dtype=bool)
+        for conditions in self.obstacles.values():
+            temp_mask = np.ones_like(x_grid, dtype=bool)
+            for cond in conditions:
+                temp_mask &= cond(x_grid, y_grid)
+            obstacle_mask |= temp_mask  
+        frame[np.where(obstacle_mask)] = (0, 0, 0)  # Black for obstacles
+
+        self.current_map = frame
+
+    def add_nodes_to_map(self, nodes):
+
+        frame = self.current_map
+
+        for node in nodes:
+
+            x1, y1, x2, y2 = self.get_node_arrow(node)
+
+            cv2.arrowedLine(frame, (int(x1), int(y1)), (int(x2), int(y2)), (255, 0, 0), 1, tipLength=0.5)
+
+        self.visual_history.append(cv2.flip(frame, 0))
+        self.current_map = frame
+    
+    def get_node_arrow(self, node):
+
+        x = node[0]
+        y = node[1]
+        angle = node[2]
+        length = 2
+
+        x_end = length*np.cos(np.deg2rad(angle*30))
+        y_end = length*np.sin(np.deg2rad(angle*30))
+
+        return int(x), int(y), int(x_end), int(y_end)
+
+    def save_map_video(self):
+
+        h, w, c = self.current_map.shape
+
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        out = cv2.VideoWriter('map_out.mp4', fourcc, 30, (w, h))
+
+        for frame in self.visual_history:
+            out.write(frame)
+
+        out.release()
+        print('Written map_out.mp4 to Directory')
+
+    def save_frame(self, frame):
+
+        cv2.imwrite('map.png', frame)
+
+    def show_current_frame(self):
+        cv2.imshow('current frame', cv2.flip(self.current_map, 0))
+        cv2.waitKey(0)   
 
 class Node():
     """
@@ -496,7 +576,7 @@ def get_pose(loc: str, binary_map: NDArray[np.uint8]) -> Union[Tuple[int, int, i
             print("Invalid input. Enter exactly three values separated by a comma.")
 
 
-def a_star(start: Node, goal: Node, cmap):
+def a_star(start: Node, goal: Node, cmap, show=False):
     """
     Performs A* path planning algorithm.
     """
@@ -524,11 +604,17 @@ def a_star(start: Node, goal: Node, cmap):
     g_cost = {start.get_discrete_pose(): 0}
     closed_nodes = set()
 
+    temp_closed_nodes = []
+
     step = 0
     while open_nodes:
 
         if step%1000 == 0:
             print(f"step: {step} -- closed set: {len(closed_nodes)}")
+            cmap.add_nodes_to_map(temp_closed_nodes)
+            temp_closed_nodes = []
+            if show:
+                cmap.show_current_frame()
         step += 1
 
         _, current_node = heapq.heappop(open_nodes)
@@ -545,6 +631,7 @@ def a_star(start: Node, goal: Node, cmap):
             return path
 
         closed_nodes.add(current_node.get_discrete_pose())
+        temp_closed_nodes.append(current_node.get_discrete_pose())
 
         for action in actions:
             new_node = action(current_node)
@@ -578,16 +665,19 @@ def main() -> None:
     goal_pose = get_pose("Goal", binary_map)
     goal_node = Node(location=(goal_pose[0], goal_pose[1]), angle=goal_pose[2])
 
-    path = a_star(start_node, goal_node, cmap)
+    path = a_star(start_node, goal_node, cmap, show=False)
 
     if path:
+        '''
         print("Path found:")
         for node in path:
             ang = node[2]*30
             if ang>180:
                 ang = ang - 360
-            print(f"Location: {node[0]+1}, {node[1]+1}, Angle: {ang}")
-        cmap.visualize_environment(start_node, goal_node, path)
+            print(f"Location: {node[0]+1}, {node[1]+1}, Angle: {ang}")'
+        '''
+        cmap.visualize_final_path(start_node, goal_node, path)
+        cmap.save_map_video()
 
     else:
         print("No path found.")
