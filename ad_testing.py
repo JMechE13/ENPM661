@@ -3,6 +3,44 @@ import numpy as np
 from typing import Tuple, Union, Callable, Dict, List
 from numpy.typing import NDArray
 import cv2
+import time
+
+
+
+# class for timekeeping
+class Timer():
+
+    # initialize and start timer
+    def __init__(self):
+        
+        self.start_time = None
+        self.end_time = None
+
+        self.start()
+
+    # start timer
+    def start(self):
+        self.start_time = time.perf_counter()
+
+    # stop timer
+    def stop(self):
+        self.end_time = time.perf_counter()
+        elapsed = self.get_time()
+        return elapsed
+
+    # get string of time elapsed mins:seconds
+    def get_time(self):
+        time_elapsed = self.end_time - self.start_time
+        return self.convert_times(time_elapsed)
+
+    # convert seconds to min/secs
+    def convert_times(self, time):
+        mins = time//60
+        rem = time%60
+        return f'{mins}:{rem}'
+
+
+
 
 # Create configuration map class
 
@@ -665,7 +703,10 @@ def main() -> None:
     goal_pose = get_pose("Goal", binary_map)
     goal_node = Node(location=(goal_pose[0], goal_pose[1]), angle=goal_pose[2])
 
+    timer = Timer()
     path = a_star(start_node, goal_node, cmap, show=False)
+    solve_time = timer.stop()
+    print('Solve Time: ', solve_time)
 
     if path:
         '''
