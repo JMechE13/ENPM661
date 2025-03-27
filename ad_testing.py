@@ -2,6 +2,7 @@ import heapq
 import numpy as np
 from typing import Tuple, Union, Callable, Dict, List
 from numpy.typing import NDArray
+import cv2
 
 # Create configuration map class
 
@@ -323,6 +324,68 @@ class CMap():
         # Return maps
         return binary_map, binary_map_scaled, binary_map_3D
 
+    def visualize_environment(self, start, goal, path):
+        """
+        Displays the environment state efficiently with path arrows.
+
+        Args:
+            obstacles (Dict[str, List[Callable[[float, float], bool]]]): Algebraic functions bounding obstacles.
+            clearances (Dict[str, List[Callable[[float, float], bool]]]): Algebraic functions bounding obstacle clearances.
+            start (Tuple[int, int, int]): Start position (x, y, θ).
+            goal (Tuple[int, int, int]): Goal position (x, y, θ).
+            path (List[Tuple[int, int, int]]): Optimal path from A*.
+            explored_nodes (List[Tuple[int, int, int]]): Explored nodes from A*.
+        """
+        start = start.get_discrete_pose()
+        goal = goal.get_discrete_pose()
+
+        # Create a blank 600x250 white frame
+        frame = np.ones((250, 600, 3), dtype=np.uint8) * 255
+
+        # Generate meshgrid of all (x, y) coordinates
+        x_grid, y_grid = np.meshgrid(np.arange(600), np.arange(250))
+
+        # Compute clearance areas in bulk
+        for conditions in self.clearances.values():
+            mask = np.ones_like(x_grid, dtype=bool)
+            for cond in conditions:
+                mask &= cond(x_grid, y_grid)  
+            frame[mask] = (150, 150, 150)  # Gray for clearance
+
+        # Compute obstacle areas efficiently
+        obstacle_mask = np.zeros_like(x_grid, dtype=bool)
+        for conditions in self.obstacles.values():
+            temp_mask = np.ones_like(x_grid, dtype=bool)
+            for cond in conditions:
+                temp_mask &= cond(x_grid, y_grid)
+            obstacle_mask |= temp_mask  
+        frame[np.where(obstacle_mask)] = (0, 0, 0)  # Black for obstacles
+
+        # Draw the optimal path using arrows
+        for i in range(len(path) - 1):
+            x1, y1, theta1 = path[i]
+            x2, y2, theta2 = path[i + 1]
+            
+            # Compute arrow direction based on theta
+            dx = int(5 * np.cos(np.radians(theta2 * 30)))  # Scale for better visibility
+            dy = int(5 * np.sin(np.radians(theta2 * 30)))
+
+            # Draw arrow from (x1, y1) to (x2, y2)
+            cv2.arrowedLine(frame, (int(x1), int(y1)), (int(x2), int(y2)), (255, 0, 0), 1, tipLength=0.75)
+
+        # Draw start and goal points
+        cv2.circle(frame, (int(start[0]), int(start[1])), 2, (0, 0, 255), -1)  # Blue (start)
+        cv2.circle(frame, (int(goal[0]), int(goal[1])), 2, (0, 255, 0), -1)  # Yellow (goal)
+
+        # Flip frame to match coordinate system
+        frame = cv2.flip(frame, 0)
+
+        #frame = cv2.resize(frame, None, fx=2, fy=2, interpolation=cv2.INTER_NEAREST)
+
+        # Display the environment with path arrows
+        cv2.imshow("A* Path Visualization", frame)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
 
 class Node():
     """
@@ -461,7 +524,13 @@ def a_star(start: Node, goal: Node, cmap):
     g_cost = {start.get_discrete_pose(): 0}
     closed_nodes = set()
 
+    step = 0
     while open_nodes:
+
+        if step%1000 == 0:
+            print(f"step: {step} -- closed set: {len(closed_nodes)}")
+        step += 1
+
         _, current_node = heapq.heappop(open_nodes)
 
         #print(f"Expanding Node: {current_node.get_discrete_pose()}")
@@ -518,8 +587,12 @@ def main() -> None:
             if ang>180:
                 ang = ang - 360
             print(f"Location: {node[0]+1}, {node[1]+1}, Angle: {ang}")
+        cmap.visualize_environment(start_node, goal_node, path)
+
     else:
         print("No path found.")
+
+    
 
 
 if __name__ == "__main__":
