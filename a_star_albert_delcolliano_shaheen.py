@@ -1,6 +1,7 @@
 import numpy as np
 import heapq as hq
 import cv2
+import time
 
 from typing import Dict, Tuple, List, Callable, Union
 from numpy.typing import NDArray
@@ -120,7 +121,7 @@ def get_pose(location: str, clearances: Dict) -> Tuple:
     while True:
 
         # Gather user input
-        user_input = input(f"{location} pose separated by commas in the format of: x, y, θ\n- x: 1 - 600\n- y: 1 - 250\n- θ: Intervals of 30, 60\nEnter: ").strip()
+        user_input = input(f"{location} pose separated by commas in the format of: x, y, θ\n- x: 1 - 600\n- y: 1 - 250\n- θ: Intervals of 30\nEnter: ").strip()
 
         # Return default start pose if input is empty
         if user_input is None:
@@ -169,6 +170,9 @@ def get_pose(location: str, clearances: Dict) -> Tuple:
 
 def a_star(start: Tuple[float, float, int], goal: Tuple[float, float, int], clearances: Dict, actions: List, map_size: Tuple[int, int] = (600, 250)) -> Union[List, None]:
 
+    # Mark start time
+    start_time = time.time()
+
     # Define function for computing heuristic
     def heuristic(node: Tuple[float, float, int], goal: Tuple[float, float, int]) -> float:
         return np.sqrt((node[0] - goal[0]) ** 2 + (node[1] - goal[1]) ** 2) + 0.5 * (node[2] - goal[2])
@@ -216,6 +220,7 @@ def a_star(start: Tuple[float, float, int], goal: Tuple[float, float, int], clea
 
     # Loop until queue is empty
     while open_list:
+
         current_node_info = hq.heappop(open_list)
         current_node: Tuple[float, float, int] = current_node_info[1]
 
@@ -227,6 +232,12 @@ def a_star(start: Tuple[float, float, int], goal: Tuple[float, float, int], clea
 
         # Determine if solution is found
         if np.sqrt((current_node[0] - goal[0]) ** 2 + (current_node[1] - goal[1]) ** 2) <= 1.5 and current_node[2] == goal[2]:
+
+            # Mark end time
+            end_time = time.time()
+
+            print(f"Time to search: {end_time - start_time:.4f} seconds")
+
             # Backtrack to find path from goal
             return backtrack(current_node, parent_map), explored_nodes
         
@@ -524,11 +535,11 @@ def main():
 
     # Gather goal pose
     goal = get_pose("Goal", clearances)
-    path, explored_nodes = a_star(start, goal, clearances, actions)
-    print(path)
-    print('\n')
-    print(len(explored_nodes), len(path))
 
+    # Run search algorithm
+    path, explored_nodes = a_star(start, goal, clearances, actions)
+
+    # Visualize the environment
     visualize_environment(obstacles, clearances, start, goal, path, explored_nodes)
 
 
