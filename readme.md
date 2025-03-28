@@ -17,3 +17,11 @@
 - Riley Albert:
     - Directory ID: ralbert8
     - UID: 120985195
+
+- Adam Del Colliano:
+    - Directory ID: adelcoll
+    - UID: 115846982
+
+- Joseph Shaheen:
+    - Directory ID: jshaheen
+    - UID: 116534321
