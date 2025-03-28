@@ -59,8 +59,9 @@ def visualize_environment(obstacles, clearances, start, goal, path, explored_nod
                         (0, 200, 200), 1, tipLength=1)
 
         # Display animation
-        cv2.imshow("A* Path Visualization", frame)
-        cv2.waitKey(1)
+        if i%5 == 0:
+            cv2.imshow("A* Path Visualization", frame)
+            cv2.waitKey(1)
 
 
     # Draw path nodes
@@ -523,10 +524,10 @@ def main():
 
     # Gather goal pose
     goal = get_pose("Goal", clearances)
-
     path, explored_nodes = a_star(start, goal, clearances, actions)
-
     print(path)
+    print('\n')
+    print(len(explored_nodes), len(path))
 
     visualize_environment(obstacles, clearances, start, goal, path, explored_nodes)
 
