@@ -226,7 +226,7 @@ def a_star(start: Tuple[float, float, int], goal: Tuple[float, float, int], clea
         explored_nodes.append(current_node)
 
         # Determine if solution is found
-        if np.sqrt((current_node[0] - goal[0]) ** 2 + (current_node[1] - goal[1]) ** 2) <= 5.0 and current_node[2] == goal[2]:
+        if np.sqrt((current_node[0] - goal[0]) ** 2 + (current_node[1] - goal[1]) ** 2) <= 1.5 and current_node[2] == goal[2]:
             # Backtrack to find path from goal
             return backtrack(current_node, parent_map), explored_nodes
         
