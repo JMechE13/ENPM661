@@ -127,7 +127,6 @@ def get_start_pose(clearances: Dict) -> Tuple:
         # Gather user input
         user_input = input("Start pose separated by commas in the format of: x, y, θ\n- x: 1 - 600\n- y: 1 - 250\n- θ: Intervals of 30\nEnter: ").strip()
 
-        # Return default start pose if input is empty
         if user_input is None:
             return ("Please enter a pose.")
         
@@ -167,8 +166,8 @@ def get_start_pose(clearances: Dict) -> Tuple:
                 print("Invalid input. Please enter integers for x, y, and theta.")
         
         # Inform user of invalid input dimension
-            else:
-                print("Invalid input. Please enter exactly three integers separated by a comma.")
+        else:
+            print("Invalid input. Please enter exactly three integers separated by a comma.")
 
 # Define functions for gathering a pose
 
@@ -180,14 +179,13 @@ def get_goal_pose(clearances: Dict) -> Tuple:
         # Gather user input
         user_input = input("Goal pose separated by commas in the format of: x, y\n- x: 1 - 600\n- y: 1 - 250\nEnter: ").strip()
 
-        # Return default start pose if input is empty
         if user_input is None:
             return ("Please enter a pose.")
         
         # Break user input into pose coordinates
         parts = user_input.split(",")
         
-        # Ensure all three pose coordinates are present
+        # Ensure all two pose coordinates are present
         if len(parts) == 2:
             try:
                 
@@ -219,10 +217,74 @@ def get_goal_pose(clearances: Dict) -> Tuple:
                 print("Invalid input. Please enter integers for x and y.")
         
         # Inform user of invalid input dimension
+        else:
+            print("Invalid input. Please enter exactly two integers separated by a comma.")
+
+
+def get_wheel_rpms() -> Tuple:
+    # Loop until values is valid
+    while True:
+
+        # Gather user input
+        user_input = input("Two positive wheel RPM values separated by commas in the format of: rpm1, rpm2\nEnter: ").strip()
+
+        if user_input is None:
+            return ("Please enter a pair of wheel RPMs.")
+        
+        # Break user input into each rpm
+        parts = user_input.split(",")
+        
+        # Ensure all values are present
+        if len(parts) == 2:
+            try:
+                
+                # Assign input rpms
+                rpm1 = float(parts[0].strip())
+                rpm2 = float(parts[1].strip())
+                
+                # If rpms are within bounds
+                if rpm1 > 0 and rpm2 > 0:
+                    return (rpm1,rpm2)
+                                  
+                # Inform user of invalid values
+                else:
+                    print("Invalid input. Please ensure both wheel RPM values are positive.")
+            
+            # Inform user of invalid input format
+            except ValueError:
+                print("Invalid input. Please enter numbers for both wheel RPM values.")
+        
+        # Inform user of invalid input dimension
+        else:
+            print("Invalid input. Please enter exactly two numbers separated by a comma.")
+
+def get_clearance() -> int:
+    # Loop until values is valid
+    while True:
+
+        # Gather user input
+        user_input = input("Clearance (in mm) of the robot\n- clearance > 0\nEnter: ").strip()
+
+        if user_input is None:
+            return ("Please enter a clearance (as an integer).")
+
+        try:
+            
+            # Assign input clearance
+            clearance = int(user_input.strip())
+            
+            # If clearance is within bounds
+            if clearance > 0:
+                return clearance
+                                
+            # Inform user of invalid values
             else:
-                print("Invalid input. Please enter exactly two integers separated by a comma.")
-
-
+                print("Invalid input. Please ensure clearance is a positive integer.")
+        
+        # Inform user of invalid input format
+        except ValueError:
+            print("Invalid input. Please enter clearance as an integer.")
+   
 
 def a_star(start: Tuple[float, float, int], goal: Tuple[float, float], clearances: Dict, actions: List, map_size: Tuple[int, int] = (600, 250)) -> Union[List, None]:
 
@@ -591,6 +653,12 @@ def main():
 
     # Gather goal pose
     goal = get_goal_pose(clearances)
+
+    # Gather wheel RPMS
+    rpms = get_wheel_rpms()
+
+    # Gather clearance
+    clearance = get_clearance()
 
     # Run search algorithm
     path, explored_nodes = a_star(start, goal, clearances, actions)
