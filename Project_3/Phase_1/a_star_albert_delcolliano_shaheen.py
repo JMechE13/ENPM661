@@ -9,7 +9,6 @@ from numpy.typing import NDArray
 
 
 # Define function for visualizing environment
-
 def visualize_environment(obstacles, clearances, start, goal, path, explored_nodes):
 
     # Create a blank 600x250 white frame
@@ -96,7 +95,6 @@ def visualize_environment(obstacles, clearances, start, goal, path, explored_nod
 
 
 # Define function for determining whether a location is valid
-
 def is_valid(x: float | int, y: float | int, clearances: Dict) -> bool:
 
     # If location is within obstacle constraints
@@ -114,7 +112,6 @@ def is_valid(x: float | int, y: float | int, clearances: Dict) -> bool:
 
 
 # Define function for gathering a pose
-
 def get_pose(location: str, clearances: Dict) -> Tuple:
 
     # Loop until pose is valid
