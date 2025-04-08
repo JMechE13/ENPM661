@@ -6,6 +6,12 @@ import time
 from typing import Dict, Tuple, List, Callable, Union
 from numpy.typing import NDArray
 
+R = 50 #Robot Wheel Radius in mm
+r = 250 #Robot Radius in mm
+L = 50 #Wheel Distance in mm
+
+map_x = 5400
+map_y = 3000
 def get_delta_pose(u_l,u_r,theta,dt,r,L):
     dx = (r/2)*(u_l+u_r)*np.cos(np.radians(theta))*dt
     dy = (r/2)*(u_l+u_r)*np.sin(np.radians(theta))*dt
@@ -16,11 +22,11 @@ def get_delta_pose(u_l,u_r,theta,dt,r,L):
 
 def visualize_environment(obstacles, clearances, start, goal, path, explored_nodes):
 
-    # Create a blank 600x250 white frame
-    frame = np.ones((250, 600, 3), dtype=np.uint8) * 255
+    # Create a blank 5400x3000 white frame
+    frame = np.ones((map_y, map_x, 3), dtype=np.uint8) * 255
 
     # Generate meshgrid of all (x, y) coordinates
-    x_grid, y_grid = np.meshgrid(np.arange(600), np.arange(250))
+    x_grid, y_grid = np.meshgrid(np.arange(map_x), np.arange(map_y))
 
     # Compute clearance area and display as gray
     for conditions in clearances.values():
@@ -56,7 +62,7 @@ def visualize_environment(obstacles, clearances, start, goal, path, explored_nod
         dy = int(3 * np.sin(np.radians(theta2 * 30)))
 
         # Flip to match coordinate system
-        y1_flipped = 250 - y1
+        y1_flipped = map_y - y1
         dy_flipped = -dy
 
         # Draw arrow of explored node
@@ -80,8 +86,8 @@ def visualize_environment(obstacles, clearances, start, goal, path, explored_nod
         dy = int(5 * np.sin(np.radians(theta2 * 30)))
 
         # Flip to match coordinate system
-        y1_flipped = 250 - y1
-        y2_flipped = 250 - y2
+        y1_flipped = map_y - y1
+        y2_flipped = map_y - y2
         dy_flipped = -dy
 
         # Draw path node
@@ -89,8 +95,8 @@ def visualize_environment(obstacles, clearances, start, goal, path, explored_nod
                          (255, 0, 0), 1, tipLength=1)  # Blue arrows
 
     # Draw start and goal points
-    cv2.circle(frame, (int(start[0]), int(250 - start[1])), 2, (0, 0, 255), -1)  # Red (start)
-    cv2.circle(frame, (int(goal[0]), int(250 - goal[1])), 2, (0, 255, 0), -1)  # Green (goal)
+    cv2.circle(frame, (int(start[0]), int(map_y - start[1])), 2, (0, 0, 255), -1)  # Red (start)
+    cv2.circle(frame, (int(goal[0]), int(map_y - goal[1])), 2, (0, 255, 0), -1)  # Green (goal)
 
     # Final visualization
     cv2.imshow("A* Path Visualization", frame)
@@ -143,7 +149,7 @@ def get_start_pose(clearances: Dict) -> Tuple:
                 theta = int(parts[2].strip())
                 
                 # If coordinates are within bounds
-                if 1 <= x <= 600 and 1 <= y <=250 and theta in [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330, 360]:
+                if 1 <= x <= map_x and 1 <= y <= map_y and theta in [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330, 360]:
                     
                     # Convert positional coordinates to 1 - n scale
                     x = x - 1
@@ -194,7 +200,7 @@ def get_goal_pose(clearances: Dict) -> Tuple:
                 y = float(parts[1].strip())
                 
                 # If coordinates are within bounds
-                if 1 <= x <= 600 and 1 <= y <=250:
+                if 1 <= x <= map_x and 1 <= y <= map_y:
                     
                     # Convert positional coordinates to 1 - n scale
                     x = x - 1
@@ -376,7 +382,7 @@ def a_star(start: Tuple[float, float, int], goal: Tuple[float, float], clearance
 
 def main():
 
-
+    base_clearance = 5
     # Define obstacles
     obstacles = {
 
@@ -510,39 +516,39 @@ def main():
     clearances = {
 
             "Clearance 1": [
-                lambda x, y: x >= 21.25,
-                lambda x, y: x <= 56.25,
-                lambda x, y: y >= 45,
-                lambda x, y: y <= 180
+                lambda x, y: x >= 26.25-base_clearance,
+                lambda x, y: x <= 51.25+base_clearance,
+                lambda x, y: y >= 50-base_clearance,
+                lambda x, y: y <= 175+base_clearance
             ],
 
             "Clearance 2": [
-                lambda x, y: x >= 56.25,
-                lambda x, y: x <= 86.25,
-                lambda x, y: y >= 45,
-                lambda x, y: y <= 80
+                lambda x, y: x >= 51.25+base_clearance,
+                lambda x, y: x <= 81.25+base_clearance,
+                lambda x, y: y >= 50-base_clearance,
+                lambda x, y: y <= 75+base_clearance
             ],
 
             "Clearance 3": [
-                lambda x, y: x >= 56.25,
-                lambda x, y: x <= 86.25,
-                lambda x, y: y >= 95,
-                lambda x, y: y <= 130
+                lambda x, y: x >= 51.25+base_clearance,
+                lambda x, y: x <= 81.25+base_clearance,
+                lambda x, y: y >= 100-base_clearance,
+                lambda x, y: y <= 125+base_clearance
             ],
 
             "Clearance 4": [
-                lambda x, y: x >= 56.25,
-                lambda x, y: x <= 86.25,
-                lambda x, y: y >= 145,
-                lambda x, y: y <= 180
+                lambda x, y: x >= 51.25+base_clearance,
+                lambda x, y: x <= 81.25+base_clearance,
+                lambda x, y: y >= 150-base_clearance,
+                lambda x, y: y <= 175+base_clearance
             ],
 
             "Clearance 5": [
-                lambda x, y: x >= 91.25,
-                lambda x, y: x <= 126.25,
-                lambda x, y: y >= 45,
-                lambda x, y: y <= 180,
-                lambda x, y: y <= -89.12565661 * x + 11318.04697,
+                lambda x, y: x >= 96.25-base_clearance,
+                lambda x, y: x <= 121.25+base_clearance,
+                lambda x, y: y >= 50-base_clearance,
+                lambda x, y: y <= 175+base_clearance,
+                #lambda x, y: y <= -89.12565661 * x + 11318.04697,
             ],
 
             "Clearance 6": [
@@ -640,13 +646,14 @@ def main():
         }
     
     # Define action set
-    actions = [
+    '''actions = [
         (1.25, 60),
         (1.25, 30),
         (1.25, 0),
         (1.25, -30),
         (1.25, -60)
     ]
+    '''
 
     # Gather start pose
     start = get_start_pose(clearances)
@@ -659,6 +666,17 @@ def main():
 
     # Gather clearance
     clearance = get_clearance()
+
+    actions = [
+        (0,rpms[0]),
+        (rpms[0],0),
+        (rpms[0],rpms[0]),
+        (0,rpms[1]),
+        (rpms[1],0),
+        (rpms[1],rpms[0]),
+        (rpms[0],rpms[1]),
+        (rpms[1],rpms[1])
+    ]
 
     # Run search algorithm
     path, explored_nodes = a_star(start, goal, clearances, actions)
