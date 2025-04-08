@@ -10,8 +10,10 @@ R = 50 #Robot Wheel Radius in mm
 r = 250 #Robot Radius in mm
 L = 50 #Wheel Distance in mm
 
-map_x = 5400
-map_y = 3000
+map_x = 540
+map_y = 300
+scale = 0.1
+
 def get_delta_pose(u_l,u_r,theta,dt,r,L):
     dx = (r/2)*(u_l+u_r)*np.cos(np.radians(theta))*dt
     dy = (r/2)*(u_l+u_r)*np.sin(np.radians(theta))*dt
@@ -131,7 +133,7 @@ def get_start_pose(clearances: Dict) -> Tuple:
     while True:
 
         # Gather user input
-        user_input = input("Start pose separated by commas in the format of: x, y, θ\n- x: 1 - 600\n- y: 1 - 250\n- θ: Intervals of 30\nEnter: ").strip()
+        user_input = input(f"Start pose separated by commas in the format of: x, y, θ\n- x: 1 - {int(map_x/scale)}\n- y: 1 - {int(map_y/scale)}\n- θ: Intervals of 30\nEnter: ").strip()
 
         if user_input is None:
             return ("Please enter a pose.")
@@ -144,16 +146,21 @@ def get_start_pose(clearances: Dict) -> Tuple:
             try:
                 
                 # Assign input coordinates
-                x = float(parts[0].strip())
-                y = float(parts[1].strip())
+                x = float(parts[0].strip())*scale
+                y = float(parts[1].strip())*scale
                 theta = int(parts[2].strip())
                 
                 # If coordinates are within bounds
-                if 1 <= x <= map_x and 1 <= y <= map_y and theta in [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330, 360]:
+                if 0 < x <= map_x and 0 < y <= map_y and theta in [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330, 360]:
                     
                     # Convert positional coordinates to 1 - n scale
-                    x = x - 1
-                    y = y - 1
+                    x = round(x - 1)
+                    y = round(y - 1)
+                    if x < 0:
+                        x = 0
+                    if y < 0:
+                        y = 0
+                    
                     
                     # If location is not an obstacle, return pose
                     if is_valid(x + 1, y + 1, clearances):
@@ -183,7 +190,7 @@ def get_goal_pose(clearances: Dict) -> Tuple:
     while True:
 
         # Gather user input
-        user_input = input("Goal pose separated by commas in the format of: x, y\n- x: 1 - 600\n- y: 1 - 250\nEnter: ").strip()
+        user_input = input(f"Goal pose separated by commas in the format of: x, y\n- x: 1 - {int(map_x/scale)}\n- y: 1 - {int(map_y/scale)}\nEnter: ").strip()
 
         if user_input is None:
             return ("Please enter a pose.")
@@ -196,15 +203,18 @@ def get_goal_pose(clearances: Dict) -> Tuple:
             try:
                 
                 # Assign input coordinates
-                x = float(parts[0].strip())
-                y = float(parts[1].strip())
-                
+                x = float(parts[0].strip())*scale
+                y = float(parts[1].strip())*scale
                 # If coordinates are within bounds
-                if 1 <= x <= map_x and 1 <= y <= map_y:
+                if 0 < x <= map_x and 0 < y <= map_y:
                     
                     # Convert positional coordinates to 1 - n scale
-                    x = x - 1
-                    y = y - 1
+                    x = round(x - 1)
+                    y = round(y - 1)
+                    if x < 0:
+                        x = 0
+                    if y < 0:
+                        y = 0
                     
                     # If location is not an obstacle, return pose
                     if is_valid(x + 1, y + 1, clearances):
