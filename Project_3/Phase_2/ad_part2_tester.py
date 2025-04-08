@@ -389,267 +389,6 @@ def a_star(start: Tuple[float, float, int], goal: Tuple[float, float], clearance
 def main():
 
     base_clearance = 5
-    # Define obstacles
-    obstacles = {
-
-            "Obstacle 1": [
-                lambda x, y: x >= 26.25,
-                lambda x, y: x <= 51.25,
-                lambda x, y: y >= 50,
-                lambda x, y: y <= 175
-            ],
-
-            "Obstacle 2": [
-                lambda x, y: x >= 51.25,
-                lambda x, y: x <= 81.25,
-                lambda x, y: y >= 50,
-                lambda x, y: y <= 75
-            ],
-
-            "Obstacle 3": [
-                lambda x, y: x >= 51.25,
-                lambda x, y: x <= 81.25,
-                lambda x, y: y >= 100,
-                lambda x, y: y <= 125
-            ],
-
-            "Obstacle 4": [
-                lambda x, y: x >= 51.25,
-                lambda x, y: x <= 81.25,
-                lambda x, y: y >= 150,
-                lambda x, y: y <= 175
-            ],
-
-            "Obstacle 5": [
-                lambda x, y: x >= 96.25,
-                lambda x, y: x <= 121.25,
-                lambda x, y: y >= 50,
-                lambda x, y: y <= 175
-            ],
-
-            "Obstacle 6": [
-                lambda x, y: x >= 121.25,
-                lambda x, y: x <= 136.25,
-                lambda x, y: y >= -(3 + (1/3)) * x + (504 + (1/6)),
-                lambda x, y: y <= -(3 + (1/3)) * x + (579 + (1/6))
-            ],
-
-            "Obstacle 7": [
-                lambda x, y: x >= 136.25,
-                lambda x, y: x <= 161.25,
-                lambda x, y: y >= 50,
-                lambda x, y: y <= 175,
-            ],
-
-            "Obstacle 8": [
-                lambda x, y: x >= 176.25,
-                lambda x, y: x <= 201.25,
-                lambda x, y: y >= 50,
-                lambda x, y: y <= 175
-            ],
-
-            "Obstacle 9": [
-                lambda x, y: x >= 201.25,
-                lambda x, y: (x - 201.25)**2 + (y - 150) ** 2 <= 625
-            ],
-
-            "Obstacle 10": [
-                lambda x, y: x >= 241.25,
-                lambda x, y: x <= 266.25,
-                lambda x, y: y >= 50,
-                lambda x, y: y <= 175
-            ],
-
-            "Obstacle 11": [
-                lambda x, y: x >= 266.25,
-                lambda x, y: x <= 297.5,
-                lambda x, y: y >= 50,
-                lambda x, y: y <= 175,
-                lambda x, y: y <= -3.2 * x + 1027,
-                lambda x, y: y >= -3.2 * x + 952
-            ],
-
-            "Obstacle 12": [
-                lambda x, y: x >= 297.5,
-                lambda x, y: x <= 328.75,
-                lambda x, y: y >= 50,
-                lambda x, y: y <= 175,
-                lambda x, y: y <= 3.2 * x - 877,
-                lambda x, y: y >= 3.2 * x - 952
-            ],
-
-            "Obstacle 13": [
-                lambda x, y: x >= 328.75,
-                lambda x, y: x <= 353.75,
-                lambda x, y: y >= 50,
-                lambda x, y: y <= 175,
-            ],
-
-            "Obstacle 14": [
-                lambda x, y: (x - 406.25)**2 + (y - 87.5) ** 2 <= 1406.25,
-            ],
-
-            "Obstacle 15": [
-                lambda x, y: (x - 476.5)**2 + (y - 87.5) ** 2 <= 11556.25,
-                lambda x, y: (x - 406.25)**2 + (y - 87.5) ** 2 >= 1406.25,
-                lambda x, y: (x - 476.5)**2 + (y - 87.5) ** 2 >= 6806.25,
-                lambda x, y: y >= 87.5,
-                lambda x, y: x <= 426.25,
-            ],
-
-            "Obstacle 16": [
-                lambda x, y: (x - 496.25)**2 + (y - 87.5) ** 2 <= 1406.25,
-            ],
-
-            "Obstacle 17": [
-                lambda x, y: (x - 566.25)**2 + (y - 87.5) ** 2 <= 11556.25,
-                lambda x, y: (x - 496.25)**2 + (y - 87.5) ** 2 >= 1406.25,
-                lambda x, y: (x - 566.25)**2 + (y - 87.5) ** 2 >= 6806.25,
-                lambda x, y: y >= 87.5,
-                lambda x, y: x <= 516.25,
-            ],
-
-            "Obstacle 18": [
-                lambda x, y: x >= 548.75,
-                lambda x, y: x <= 573.75,
-                lambda x, y: y >= 50,
-                lambda x, y: y <= 183
-            ],
-
-    }
-
-    # Define clearances
-    clearances = {
-
-            "Clearance 1": [
-                lambda x, y: x >= 26.25-base_clearance,
-                lambda x, y: x <= 51.25+base_clearance,
-                lambda x, y: y >= 50-base_clearance,
-                lambda x, y: y <= 175+base_clearance
-            ],
-
-            "Clearance 2": [
-                lambda x, y: x >= 51.25+base_clearance,
-                lambda x, y: x <= 81.25+base_clearance,
-                lambda x, y: y >= 50-base_clearance,
-                lambda x, y: y <= 75+base_clearance
-            ],
-
-            "Clearance 3": [
-                lambda x, y: x >= 51.25+base_clearance,
-                lambda x, y: x <= 81.25+base_clearance,
-                lambda x, y: y >= 100-base_clearance,
-                lambda x, y: y <= 125+base_clearance
-            ],
-
-            "Clearance 4": [
-                lambda x, y: x >= 51.25+base_clearance,
-                lambda x, y: x <= 81.25+base_clearance,
-                lambda x, y: y >= 150-base_clearance,
-                lambda x, y: y <= 175+base_clearance
-            ],
-
-            "Clearance 5": [
-                lambda x, y: x >= 96.25-base_clearance,
-                lambda x, y: x <= 121.25+base_clearance,
-                lambda x, y: y >= 50-base_clearance,
-                lambda x, y: y <= 175+base_clearance,
-                #lambda x, y: y <= -89.12565661 * x + 11318.04697,
-            ],
-
-            "Clearance 6": [
-                lambda x, y: x >= 124.9701533,
-                lambda x, y: x <= 132.52984675,
-                lambda x, y: y <= -(3 + (1/3)) * x + 596.5671771,
-                lambda x, y: y >= -(3 + (1/3)) * x + 486.7661641
-            ],
-
-            "Clearance 7": [
-                lambda x, y: x >= 131.25,
-                lambda x, y: x <= 166.25,
-                lambda x, y: y >= 45,
-                lambda x, y: y <= 180,
-                lambda x, y: y >= -89.12565315 * x + 11856.80915,
-            ],
-
-            "Clearance 8": [
-                lambda x, y: x >= 171.25,
-                lambda x, y: x <= 206.25,
-                lambda x, y: y >= 45,
-                lambda x, y: y <= 180
-            ],
-
-            "Clearance 9": [
-                lambda x, y: x >= 201.25,
-                lambda x, y: (x - 201.25)**2 + (y - 150) ** 2 <= 900
-            ],
-
-            "Clearance 10": [
-                lambda x, y: x >= 236.25,
-                lambda x, y: x <= 271.25,
-                lambda x, y: y >= 45,
-                lambda x, y: y <= 180,
-                lambda x, y: y <= -85.165548 * x + 23168.391984
-            ],
-
-            "Clearance 11": [
-                lambda x, y: x >= 269.92595457,
-                lambda x, y: x <= 297.5,
-                lambda x, y: y >= 45,
-                lambda x, y: y <= 180,
-                lambda x, y: y >= -3.2 * x + 935.2369454,
-                lambda x, y: y <= -3.2 * x + 1043.763055
-            ],
-
-            "Clearance 12": [
-                lambda x, y: x >= 297.5,
-                lambda x, y: x <= 325.07404543,
-                lambda x, y: y >= 45,
-                lambda x, y: y <= 180,
-                lambda x, y: y <= 3.2 * x - 860.2369454,
-                lambda x, y: y >= 3.2 * x - 968.7630546
-            ],
-
-            "Clearance 13": [
-                lambda x, y: x >= 323.75,
-                lambda x, y: x <= 358.75,
-                lambda x, y: y >= 45,
-                lambda x, y: y <= 180,
-                lambda x, y: y <= 85.165548 * x - 27505.10922
-            ],
-
-            "Clearance 14": [
-                lambda x, y: (x - 406.25)**2 + (y - 87.5) ** 2 <= 1806.25,
-            ],
-
-            "Clearance 15": [
-                lambda x, y: (x - 476.5)**2 + (y - 87.5) ** 2 <= 12656.25,
-                lambda x, y: (x - 406.25)**2 + (y - 87.5) ** 2 >= 1806.25,
-                lambda x, y: (x - 476.5)**2 + (y - 87.5) ** 2 >= 6006.25,
-                lambda x, y: y >= 87.5,
-                lambda x, y: x <= 431.25,
-            ],
-
-            "Clearance 16": [
-                lambda x, y: (x - 496.25)**2 + (y - 87.5) ** 2 <= 1806.25,
-            ],
-
-            "Clearance 17": [
-                lambda x, y: (x - 566.25)**2 + (y - 87.5) ** 2 <= 12556.25,
-                lambda x, y: (x - 496.25)**2 + (y - 87.5) ** 2 >= 1806.25,
-                lambda x, y: (x - 566.25)**2 + (y - 87.5) ** 2 >= 6006.25,
-                lambda x, y: y >= 87.5,
-                lambda x, y: x <= 521.25,
-            ],
-
-            "Clearance 18": [
-                lambda x, y: x >= 543.75,
-                lambda x, y: x <= 578.75,
-                lambda x, y: y >= 45,
-                lambda x, y: y <= 188
-            ],
-
-        }
     
     # Define action set
     '''actions = [
@@ -661,6 +400,119 @@ def main():
     ]
     '''
 
+    # Gather clearance
+    user_clearance = get_clearance()
+
+    clearance = base_clearance+user_clearance
+
+    # Define obstacles
+    obstacles = {
+
+            "Obstacle 1": [
+                lambda x, y: x >= 1000,
+                lambda x, y: x <= 1100,
+                lambda x, y: y >= 0,
+                lambda x, y: y <= 2000
+            ],
+
+            "Obstacle 2": [
+                lambda x, y: x >= 2100,
+                lambda x, y: x <= 2200,
+                lambda x, y: y >= 1000,
+                lambda x, y: y <= 3000
+            ],
+
+            "Obstacle 3": [
+                lambda x, y: x >= 3200,
+                lambda x, y: x <= 3300,
+                lambda x, y: y >= 0,
+                lambda x, y: y <= 1000
+            ],
+
+            "Obstacle 4": [
+                lambda x, y: x >= 3200,
+                lambda x, y: x <= 3300,
+                lambda x, y: y >= 2000,
+                lambda x, y: y <= 3000
+            ],
+
+            "Obstacle 5": [
+                lambda x, y: x >= 4300,
+                lambda x, y: x <= 4400,
+                lambda x, y: y >= 0,
+                lambda x, y: y <= 2000
+            ],
+
+    }
+
+    # Define clearances
+    clearances = {
+
+            "Clearance 1": [
+                lambda x, y: x >= 1000-clearance,
+                lambda x, y: x <= 1100+clearance,
+                lambda x, y: y >= 0,
+                lambda x, y: y <= 2000+clearance
+            ],
+
+            "Clearance 2": [
+                lambda x, y: x >= 2100-clearance,
+                lambda x, y: x <= 2200+clearance,
+                lambda x, y: y >= 1000-clearance,
+                lambda x, y: y <= 3000
+            ],
+
+            "Clearance 3": [
+                lambda x, y: x >= 3200-clearance,
+                lambda x, y: x <= 3300+clearance,
+                lambda x, y: y >= 0,
+                lambda x, y: y <= 1000+clearance
+            ],
+
+            "Clearance 4": [
+                lambda x, y: x >= 3200-clearance,
+                lambda x, y: x <= 3300+clearance,
+                lambda x, y: y >= 2000-clearance,
+                lambda x, y: y <= 3000
+            ],
+
+            "Clearance 5": [
+                lambda x, y: x >= 4300-clearance,
+                lambda x, y: x <= 4400+clearance,
+                lambda x, y: y >= 0,
+                lambda x, y: y <= 2000+clearance
+            ],
+
+            "Clearance 6": [
+                lambda x, y: x >= 0,
+                lambda x, y: x <= 10+clearance,
+                lambda x, y: y >= 0,
+                lambda x, y: y <= map_y
+            ],
+
+            "Clearance 7": [
+                lambda x, y: x >= map_x-10-clearance,
+                lambda x, y: x <= map_x,
+                lambda x, y: y >= 0,
+                lambda x, y: y <= map_y
+            ],
+
+            "Clearance 8": [
+                lambda x, y: x >= 0,
+                lambda x, y: x <= map_x,
+                lambda x, y: y >= 0,
+                lambda x, y: y <= 10+clearance
+            ],
+
+            "Clearance 9": [
+                lambda x, y: x >= 0,
+                lambda x, y: x <= map_x,
+                lambda x, y: y >= map_y-10-clearance,
+                lambda x, y: y <= map_y
+            ],
+
+    }
+
     # Gather start pose
     start = get_start_pose(clearances)
 
@@ -669,9 +521,6 @@ def main():
 
     # Gather wheel RPMS
     rpms = get_wheel_rpms()
-
-    # Gather clearance
-    clearance = get_clearance()
 
     actions = [
         (0,rpms[0]),
