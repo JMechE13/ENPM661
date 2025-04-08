@@ -10,8 +10,8 @@ R = 50 #Robot Wheel Radius in mm
 r = 250 #Robot Radius in mm
 L = 50 #Wheel Distance in mm
 
-map_x = 540
-map_y = 300
+map_x = 5400
+map_y = 3000
 scale = 0.1
 
 def get_delta_pose(u_l,u_r,theta,dt,r,L):
@@ -70,10 +70,12 @@ def visualize_environment(obstacles, clearances, start, goal, path, explored_nod
         # Draw arrow of explored node
         cv2.arrowedLine(frame, (int(x1), int(y1_flipped)), (int(x1 + dx), int(y1_flipped + dy_flipped)), 
                         (0, 200, 200), 1, tipLength=1)
+        
+        scale_frame = cv2.resize(frame,(int(map_x*scale),int(map_y*scale)),interpolation=cv2.INTER_LINEAR)
 
         # Display animation
         if i%5 == 0:
-            cv2.imshow("A* Path Visualization", frame)
+            cv2.imshow("A* Path Visualization", scale_frame)
             cv2.waitKey(1)
 
 
@@ -100,8 +102,10 @@ def visualize_environment(obstacles, clearances, start, goal, path, explored_nod
     cv2.circle(frame, (int(start[0]), int(map_y - start[1])), 2, (0, 0, 255), -1)  # Red (start)
     cv2.circle(frame, (int(goal[0]), int(map_y - goal[1])), 2, (0, 255, 0), -1)  # Green (goal)
 
+    scale_frame = cv2.resize(frame,(int(map_x*scale),int(map_y*scale)),interpolation=cv2.INTER_LINEAR)
+
     # Final visualization
-    cv2.imshow("A* Path Visualization", frame)
+    cv2.imshow("A* Path Visualization", scale_frame)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
@@ -133,7 +137,7 @@ def get_start_pose(clearances: Dict) -> Tuple:
     while True:
 
         # Gather user input
-        user_input = input(f"Start pose separated by commas in the format of: x, y, θ\n- x: 1 - {int(map_x/scale)}\n- y: 1 - {int(map_y/scale)}\n- θ: Intervals of 30\nEnter: ").strip()
+        user_input = input(f"Start pose separated by commas in the format of: x, y, θ\n- x: 1 - {map_x}\n- y: 1 - {map_y}\n- θ: Intervals of 30\nEnter: ").strip()
 
         if user_input is None:
             return ("Please enter a pose.")
@@ -146,20 +150,16 @@ def get_start_pose(clearances: Dict) -> Tuple:
             try:
                 
                 # Assign input coordinates
-                x = float(parts[0].strip())*scale
-                y = float(parts[1].strip())*scale
+                x = float(parts[0].strip())
+                y = float(parts[1].strip())
                 theta = int(parts[2].strip())
                 
                 # If coordinates are within bounds
-                if 0 < x <= map_x and 0 < y <= map_y and theta in [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330, 360]:
+                if 1 <= x <= map_x and 1 <= y <= map_y and theta in [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330, 360]:
                     
                     # Convert positional coordinates to 1 - n scale
-                    x = round(x - 1)
-                    y = round(y - 1)
-                    if x < 0:
-                        x = 0
-                    if y < 0:
-                        y = 0
+                    x = x - 1
+                    y = y - 1
                     
                     
                     # If location is not an obstacle, return pose
@@ -190,7 +190,7 @@ def get_goal_pose(clearances: Dict) -> Tuple:
     while True:
 
         # Gather user input
-        user_input = input(f"Goal pose separated by commas in the format of: x, y\n- x: 1 - {int(map_x/scale)}\n- y: 1 - {int(map_y/scale)}\nEnter: ").strip()
+        user_input = input(f"Goal pose separated by commas in the format of: x, y\n- x: 1 - {map_x}\n- y: 1 - {map_y}\nEnter: ").strip()
 
         if user_input is None:
             return ("Please enter a pose.")
@@ -203,18 +203,14 @@ def get_goal_pose(clearances: Dict) -> Tuple:
             try:
                 
                 # Assign input coordinates
-                x = float(parts[0].strip())*scale
-                y = float(parts[1].strip())*scale
+                x = float(parts[0].strip())
+                y = float(parts[1].strip())
                 # If coordinates are within bounds
-                if 0 < x <= map_x and 0 < y <= map_y:
+                if 1 <= x <= map_x and 1 <= y <= map_y:
                     
                     # Convert positional coordinates to 1 - n scale
-                    x = round(x - 1)
-                    y = round(y - 1)
-                    if x < 0:
-                        x = 0
-                    if y < 0:
-                        y = 0
+                    x = x - 1
+                    y = y - 1
                     
                     # If location is not an obstacle, return pose
                     if is_valid(x + 1, y + 1, clearances):
