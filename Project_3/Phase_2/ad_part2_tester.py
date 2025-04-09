@@ -123,8 +123,8 @@ def visualize_environment(obstacles, clearances, start, goal, path, explored_nod
                             (255, 0, 0), 1, tipLength=1)  # Blue arrows
 
     # Draw start and goal points
-    cv2.circle(frame, (int(start[0]), int(map_y - start[1])), 2, (0, 0, 255), -1)  # Red (start)
-    cv2.circle(frame, (int(goal[0]), int(map_y - goal[1])), 2, (0, 255, 0), -1)  # Green (goal)
+    cv2.circle(frame, (int(start[0]), int(map_y - start[1])), 50, (0, 0, 255), -1)  # Red (start)
+    cv2.circle(frame, (int(goal[0]), int(map_y - goal[1])), 50, (0, 255, 0), -1)  # Green (goal)
 
     scale_frame = cv2.resize(frame,(int(map_x*scale),int(map_y*scale)),interpolation=cv2.INTER_LINEAR)
 
