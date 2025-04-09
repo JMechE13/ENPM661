@@ -454,7 +454,11 @@ def a_star(start: Tuple[float, float, int], goal: Tuple[float, float], clearance
         
         # Loop through neighbors
         for neighbor in get_neighbors(current_node, visited, clearances, actions):
-            new_cost = cost_map[current_node] + 1
+
+            # cost for action taken -- all actions valued at 1
+            new_cost = cost_map[current_node] + 1  
+
+            # checks if node cost can be reduce and updates it
             if neighbor not in cost_map or new_cost < cost_map[neighbor]:
                 cost_map[neighbor] = new_cost
                 total_cost = new_cost + heuristic(neighbor, goal)
