@@ -16,7 +16,9 @@ L = 50 #Wheel Distance in mm
 
 map_x = 5400
 map_y = 3000
-scale = 0.1
+scale = 0.15
+
+
 
 def get_delta_pose(u_l,u_r,theta,dt,r,L):
     '''
@@ -68,8 +70,8 @@ def visualize_environment(obstacles, clearances, start, goal, path, explored_nod
     frame[np.where(obstacle_mask)] = (0, 0, 0)
 
     # Draw the start and goal points
-    cv2.circle(frame, (int(start[0]), int(start[1])), 2, (0, 0, 255), -1)
-    cv2.circle(frame, (int(goal[0]), int(goal[1])), 2, (0, 255, 0), -1)
+    cv2.circle(frame, (int(start[0]), int(start[1])), 50, (0, 0, 255), -1)
+    cv2.circle(frame, (int(goal[0]), int(goal[1])), 50, (0, 255, 0), -1)
 
     # Flip to match coordinate system
     frame = cv2.flip(frame, 0)
@@ -101,23 +103,24 @@ def visualize_environment(obstacles, clearances, start, goal, path, explored_nod
 
 
     # Draw path nodes
-    for i in range(len(path) - 1):
+    if path is not None:
+        for i in range(len(path) - 1):
 
-        # Gather arrow end points
-        x1, y1, theta1 = path[i]
-        x2, y2, theta2 = path[i + 1]
-        
-        dx = int(5 * np.cos(np.radians(theta2 * 30)))  # Scale for better visibility
-        dy = int(5 * np.sin(np.radians(theta2 * 30)))
+            # Gather arrow end points
+            x1, y1, theta1 = path[i]
+            x2, y2, theta2 = path[i + 1]
+            
+            dx = int(5 * np.cos(np.radians(theta2 * 30)))  # Scale for better visibility
+            dy = int(5 * np.sin(np.radians(theta2 * 30)))
 
-        # Flip to match coordinate system
-        y1_flipped = map_y - y1
-        y2_flipped = map_y - y2
-        dy_flipped = -dy
+            # Flip to match coordinate system
+            y1_flipped = map_y - y1
+            y2_flipped = map_y - y2
+            dy_flipped = -dy
 
-        # Draw path node
-        cv2.arrowedLine(frame, (int(x1), int(y1_flipped)), (int(x2), int(y2_flipped)), 
-                         (255, 0, 0), 1, tipLength=1)  # Blue arrows
+            # Draw path node
+            cv2.arrowedLine(frame, (int(x1), int(y1_flipped)), (int(x2), int(y2_flipped)), 
+                            (255, 0, 0), 1, tipLength=1)  # Blue arrows
 
     # Draw start and goal points
     cv2.circle(frame, (int(start[0]), int(map_y - start[1])), 2, (0, 0, 255), -1)  # Red (start)
@@ -341,6 +344,9 @@ def a_star(start: Tuple[float, float, int], goal: Tuple[float, float], clearance
 
     # Mark start time
     start_time = time.time()
+    debugging = 0
+    threshold = 10.0
+    early_stop = 50000
 
     # Define function for computing heuristic
     def heuristic(node: Tuple[float, float, int], goal: Tuple[float, float]) -> float:
@@ -359,7 +365,7 @@ def a_star(start: Tuple[float, float, int], goal: Tuple[float, float], clearance
     def get_neighbors(node: Tuple[float, float, float], visited: np.ndarray, clearances: Dict, actions: List, map_size: Tuple[int, int] = (5400, 3000)) -> List:
         
         # action specific parameters
-        dt = 1.0                # time step (s)
+        dt = 5.0                # time step (s)
         wheel_radius = 0.038    
         wheel_base = 0.354
 
@@ -389,9 +395,10 @@ def a_star(start: Tuple[float, float, int], goal: Tuple[float, float], clearance
                         neighbors.append((new_x, new_y, new_theta))
 
                     else:
-                        print(f'\nInvalid Node Created with action index {action_i}: ', new_x, new_y, new_theta, ' ints: ', int_x, int_y, int_theta)
-                        print('Status -- visited: ', visited[int_y, int_x, int_theta] == 0)
-                        print('Status -- is_valid: ', 0 <= int_x < map_size[0])
+                        if debugging:
+                            print(f'\nInvalid Node Created with action index {action_i}: ', new_x, new_y, new_theta, ' ints: ', int_x, int_y, int_theta)
+                            print('Status -- visited: ', visited[int_y, int_x, int_theta] == 0)
+                            print('Status -- is_valid: ', 0 <= int_x < map_size[0])
 
             
 
@@ -435,7 +442,7 @@ def a_star(start: Tuple[float, float, int], goal: Tuple[float, float], clearance
         explored_nodes.append(current_node)
 
         # Determine if solution is found
-        if np.sqrt((current_node[0] - goal[0]) ** 2 + (current_node[1] - goal[1]) ** 2) <= 1.5:
+        if np.sqrt((current_node[0] - goal[0]) ** 2 + (current_node[1] - goal[1]) ** 2) <= threshold:
 
             # Mark end time
             end_time = time.time()
@@ -453,6 +460,13 @@ def a_star(start: Tuple[float, float, int], goal: Tuple[float, float], clearance
                 total_cost = new_cost + heuristic(neighbor, goal)
                 hq.heappush(open_list, (total_cost, neighbor))
                 parent_map[neighbor] = current_node
+
+        # early stop to give up -- for testing
+        if len(explored_nodes) == early_stop:
+            break
+
+        if len(explored_nodes)%100 == 0:
+            print('Nodes Explored: ', len(explored_nodes))
 
     return None, explored_nodes  # Return None if no path is found
         
@@ -626,8 +640,6 @@ def main():
 
     if path is None:
         print('NO PATH FOUND: -- Explored: ', len(explored_nodes), ' Nodes')
-        print('== Exiting ==')
-        sys.exit()
 
     # Visualize the environment
     visualize_environment(obstacles, clearances, start, goal, path, explored_nodes)
