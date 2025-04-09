@@ -344,9 +344,9 @@ def a_star(start: Tuple[float, float, int], goal: Tuple[float, float], clearance
 
     # Mark start time
     start_time = time.time()
-    debugging = 0
-    threshold = 10.0
-    early_stop = 50000
+    debugging = 0           # show/hide outputs meant for debugging
+    threshold = 10.0        # distance threshold to goal to consider success
+    early_stop = 50000      # number of nodes to explore before quitting algorithm
 
     # Define function for computing heuristic
     def heuristic(node: Tuple[float, float, int], goal: Tuple[float, float]) -> float:
