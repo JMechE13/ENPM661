@@ -38,9 +38,9 @@ def get_delta_pose(u_l,u_r,theta,dt,r,L):
         - dtheta (float): change in heading
     
     '''
-    dx = (r/2)*(u_l+u_r)*np.cos(np.radians(theta))*dt
-    dy = (r/2)*(u_l+u_r)*np.sin(np.radians(theta))*dt
-    dtheta = (r/L)*(u_r-u_l)*dt
+    dx = (r/2)*(u_l+u_r)*np.cos(np.radians(theta*30))*dt
+    dy = (r/2)*(u_l+u_r)*np.sin(np.radians(theta*30))*dt
+    dtheta = np.degrees((r/L)*(u_r-u_l)*dt)
     return dx,dy,dtheta
 
 # Define function for visualizing environment
@@ -92,12 +92,12 @@ def visualize_environment(obstacles, clearances, start, goal, path, explored_nod
 
         # Draw arrow of explored node
         cv2.arrowedLine(frame, (int(x1), int(y1_flipped)), (int(x1 + dx), int(y1_flipped + dy_flipped)), 
-                        (0, 200, 200), 1, tipLength=1)
+                        (0, 200, 200), 20, tipLength=1)
         
         scale_frame = cv2.resize(frame,(int(map_x*scale),int(map_y*scale)),interpolation=cv2.INTER_LINEAR)
 
         # Display animation
-        if i%5 == 0:
+        if i%100 == 0:
             cv2.imshow("A* Path Visualization", scale_frame)
             cv2.waitKey(1)
 
@@ -224,7 +224,7 @@ def get_goal_pose(clearances: Dict) -> Tuple:
 
         # default for quick testing
         if user_input == '':
-            user_input = '200,200'
+            user_input = '3000,500'
 
         if user_input is None:
             return ("Please enter a pose.")
@@ -345,8 +345,9 @@ def a_star(start: Tuple[float, float, int], goal: Tuple[float, float], clearance
     # Mark start time
     start_time = time.time()
     debugging = 0           # show/hide outputs meant for debugging
-    threshold = 10.0        # distance threshold to goal to consider success
-    early_stop = 50000      # number of nodes to explore before quitting algorithm
+    threshold = 250.0        # distance threshold to goal to consider success
+    early_stop_on = False
+    early_stop = 500000      # number of nodes to explore before quitting algorithm
 
     # Define function for computing heuristic
     def heuristic(node: Tuple[float, float, int], goal: Tuple[float, float]) -> float:
@@ -365,9 +366,9 @@ def a_star(start: Tuple[float, float, int], goal: Tuple[float, float], clearance
     def get_neighbors(node: Tuple[float, float, float], visited: np.ndarray, clearances: Dict, actions: List, map_size: Tuple[int, int] = (5400, 3000)) -> List:
         
         # action specific parameters
-        dt = 5.0                # time step (s)
-        wheel_radius = 0.038    
-        wheel_base = 0.354
+        dt = 1.0                # time step (s)
+        wheel_radius = 50   
+        wheel_base = 50
 
         x, y, theta = node 
         neighbors = []
@@ -377,15 +378,20 @@ def a_star(start: Tuple[float, float, int], goal: Tuple[float, float], clearance
         for ul, ur in actions:
             
             # get changes
-            dx, dy, dtheta = get_delta_pose(u_l=ul,u_r=ur,theta=theta, dt=dt, r=wheel_radius, L=wheel_base)
+            dx, dy, o_dtheta = get_delta_pose(u_l=ul,u_r=ur,theta=theta, dt=dt, r=wheel_radius, L=wheel_base)
 
             # apply deltas
             new_x = x + dx
             new_y = y + dy
-            new_theta = theta + dtheta
+            dtheta = (o_dtheta/30)
+            theta_sum = (theta + dtheta)
+            # edge case handing, see scratchpad.py
+            if abs(theta_sum) <0.00000000001:
+                theta_sum = 0.0
+            new_theta = theta_sum%12
 
             # check validty of new coords/heading and add to generated node list
-            int_x, int_y, int_theta = int(round(new_x)), int(round(new_y)), int((new_theta//30)%12)
+            int_x, int_y, int_theta = int(round(new_x)), int(round(new_y)), int(new_theta)
 
             try:
                 if 0 <= int_x < map_size[0] and 0 <= int_y < map_size[1]:
@@ -404,7 +410,11 @@ def a_star(start: Tuple[float, float, int], goal: Tuple[float, float], clearance
 
             except Exception as e:
                 print('Error: ', type(e), e)
-                print('new_x: ', new_x, ' new_y: ', new_y, ' new_theta: ', new_theta)
+                print('new_x: ', new_x, ' new_y: ', new_y, ' new_theta: ', new_theta, '\ndx :', dx, " dy: ", dy, ' dtheta: ', o_dtheta, ' dtheta adjusted: ', dtheta, '\nx: ', x, ' y: ', y, ' theta: ', theta)
+                print('theta sum: ', theta_sum)
+                print('theta sum mod: ', (theta_sum)%12)
+
+                
                 print('- - EXITING - -')
                 sys.exit()
 
@@ -430,49 +440,53 @@ def a_star(start: Tuple[float, float, int], goal: Tuple[float, float], clearance
     explored_nodes = []
 
     # Loop until queue is empty
-    while open_list:
+    try:
+        while open_list:
 
-        current_node_info = hq.heappop(open_list)
-        current_node: Tuple[float, float, int] = current_node_info[1]
+            current_node_info = hq.heappop(open_list)
+            current_node: Tuple[float, float, int] = current_node_info[1]
 
-        # Add node to closed list
-        closed_nodes.append(current_node)
+            # Add node to closed list
+            closed_nodes.append(current_node)
 
-        # Record explored node for visualization
-        explored_nodes.append(current_node)
+            # Record explored node for visualization
+            explored_nodes.append(current_node)
 
-        # Determine if solution is found
-        if np.sqrt((current_node[0] - goal[0]) ** 2 + (current_node[1] - goal[1]) ** 2) <= threshold:
+            # Determine if solution is found
+            if np.sqrt((current_node[0] - goal[0]) ** 2 + (current_node[1] - goal[1]) ** 2) <= threshold:
 
-            # Mark end time
-            end_time = time.time()
+                # Mark end time
+                end_time = time.time()
 
-            print(f"Time to search: {end_time - start_time:.4f} seconds")
+                print(f"Time to search: {end_time - start_time:.4f} seconds")
 
-            # Backtrack to find path from goal
-            return backtrack(current_node, parent_map), explored_nodes
-        
-        # Loop through neighbors
-        for neighbor in get_neighbors(current_node, visited, clearances, actions):
+                # Backtrack to find path from goal
+                return backtrack(current_node, parent_map), explored_nodes
+            
+            # Loop through neighbors
+            for neighbor in get_neighbors(current_node, visited, clearances, actions):
 
-            # cost for action taken -- all actions valued at 1
-            new_cost = cost_map[current_node] + 1  
+                # cost for action taken -- all actions valued at 1
+                new_cost = cost_map[current_node] + 1  
 
-            # checks if node cost can be reduce and updates it
-            if neighbor not in cost_map or new_cost < cost_map[neighbor]:
-                cost_map[neighbor] = new_cost
-                total_cost = new_cost + heuristic(neighbor, goal)
-                hq.heappush(open_list, (total_cost, neighbor))
-                parent_map[neighbor] = current_node
+                # checks if node cost can be reduce and updates it
+                if neighbor not in cost_map or new_cost < cost_map[neighbor]:
+                    cost_map[neighbor] = new_cost
+                    total_cost = new_cost + heuristic(neighbor, goal)
+                    hq.heappush(open_list, (total_cost, neighbor))
+                    parent_map[neighbor] = current_node
 
-        # logging
-        if len(explored_nodes)%1000 == 0:
-            print('Nodes Explored: ', len(explored_nodes))
+            # logging
+            if len(explored_nodes)%1000 == 0:
+                print('Nodes Explored: ', len(explored_nodes))
 
 
-        # early stop to give up -- for testing
-        if len(explored_nodes) == early_stop:
-            break
+            # early stop to give up -- for testing
+            if early_stop_on:
+                if len(explored_nodes) == early_stop:
+                    break
+    except KeyboardInterrupt:
+        print('Force Quit')
 
 
 
