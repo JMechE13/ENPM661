@@ -6,7 +6,7 @@ import time
 from typing import Dict, Tuple, List, Callable, Union
 from numpy.typing import NDArray
 
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 
 import sys
 
@@ -386,7 +386,7 @@ def a_star(start: Tuple[float, float, int], goal: Tuple[float, float], clearance
             dtheta = (o_dtheta/30)
             theta_sum = (theta + dtheta)
             # edge case handing, see scratchpad.py
-            if abs(theta_sum) <0.00000000001:
+            if abs(theta_sum) < 0.00000000001:
                 theta_sum = 0.0
             new_theta = theta_sum%12
 
@@ -646,12 +646,14 @@ def main():
     ]
 
     # Run search algorithm
+    printstart = f"({start[0]+1}, {start[1]+1}, {start[2]*30})"
+    printgoal = f"({goal[0]+1}, {goal[1]+1})"
 
     print('======================================================')
     print('Parameters:')
     print('- Clearance: ', user_clearance)
-    print('- Start: ', start)
-    print('- Goal: ', goal)
+    print('- Start: ', printstart)
+    print('- Goal: ', printgoal)
     print('- RPMS: ', rpms)
     print('======================================================')
     wait = input('Press Enter to Begin Algorithm')
