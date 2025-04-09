@@ -466,7 +466,7 @@ def a_star(start: Tuple[float, float, int], goal: Tuple[float, float], clearance
                 parent_map[neighbor] = current_node
 
         # logging
-        if len(explored_nodes)%100 == 0:
+        if len(explored_nodes)%1000 == 0:
             print('Nodes Explored: ', len(explored_nodes))
 
 
