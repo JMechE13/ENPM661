@@ -6,6 +6,10 @@ import time
 from typing import Dict, Tuple, List, Callable, Union
 from numpy.typing import NDArray
 
+import matplotlib.pyplot as plt
+
+import sys
+
 R = 50 #Robot Wheel Radius in mm
 r = 250 #Robot Radius in mm
 L = 50 #Wheel Distance in mm
@@ -15,6 +19,23 @@ map_y = 3000
 scale = 0.1
 
 def get_delta_pose(u_l,u_r,theta,dt,r,L):
+    '''
+
+    Args:
+        u_l (float): left wheel RPM
+        u_r (float): right wheel RPM
+        theta (float): heading
+        dt (float): time step
+        r (float): wheel radius
+        L (float): wheel base
+    
+    Returns:
+        tuple: containing:
+        - dx (float): change in x coord
+        - dy (float): change in y coord
+        - dtheta (float): change in heading
+    
+    '''
     dx = (r/2)*(u_l+u_r)*np.cos(np.radians(theta))*dt
     dy = (r/2)*(u_l+u_r)*np.sin(np.radians(theta))*dt
     dtheta = (r/L)*(u_r-u_l)*dt
@@ -137,7 +158,13 @@ def get_start_pose(clearances: Dict) -> Tuple:
     while True:
 
         # Gather user input
-        user_input = input(f"Start pose separated by commas in the format of: x, y, θ\n- x: 1 - {map_x}\n- y: 1 - {map_y}\n- θ: Intervals of 30\nEnter: ").strip()
+
+        user_input = input(f"\nStart pose separated by commas in the format of: x, y, θ\n- x: 1 - {map_x}\n- y: 1 - {map_y}\n- θ: Intervals of 30\nEnter: ").strip()
+
+        # default for quick testing
+        if user_input == '':
+            user_input = '100,100,0'
+
 
         if user_input is None:
             return ("Please enter a pose.")
@@ -190,7 +217,11 @@ def get_goal_pose(clearances: Dict) -> Tuple:
     while True:
 
         # Gather user input
-        user_input = input(f"Goal pose separated by commas in the format of: x, y\n- x: 1 - {map_x}\n- y: 1 - {map_y}\nEnter: ").strip()
+        user_input = input(f"\nGoal pose separated by commas in the format of: x, y\n- x: 1 - {map_x}\n- y: 1 - {map_y}\nEnter: ").strip()
+
+        # default for quick testing
+        if user_input == '':
+            user_input = '200,200'
 
         if user_input is None:
             return ("Please enter a pose.")
@@ -238,7 +269,11 @@ def get_wheel_rpms() -> Tuple:
     while True:
 
         # Gather user input
-        user_input = input("Two positive wheel RPM values separated by commas in the format of: rpm1, rpm2\nEnter: ").strip()
+        user_input = input("\nTwo positive wheel RPM values separated by commas in the format of: rpm1, rpm2\nEnter: ").strip()
+
+        # default for quick testing
+        if user_input == '':
+            user_input = '5,10'
 
         if user_input is None:
             return ("Please enter a pair of wheel RPMs.")
@@ -275,7 +310,11 @@ def get_clearance() -> int:
     while True:
 
         # Gather user input
-        user_input = input("Clearance (in mm) of the robot\n- clearance > 0\nEnter: ").strip()
+        user_input = input("\nClearance (in mm) of the robot [> 0]\nEnter: ").strip()
+
+        # default for quick testing
+        if user_input == '':
+            user_input = '1'
 
         if user_input is None:
             return ("Please enter a clearance (as an integer).")
@@ -298,7 +337,7 @@ def get_clearance() -> int:
             print("Invalid input. Please enter clearance as an integer.")
    
 
-def a_star(start: Tuple[float, float, int], goal: Tuple[float, float], clearances: Dict, actions: List, map_size: Tuple[int, int] = (600, 250)) -> Union[List, None]:
+def a_star(start: Tuple[float, float, int], goal: Tuple[float, float], clearances: Dict, actions: List, map_size: Tuple[int, int] = (5400, 3000)) -> Union[List, None]:
 
     # Mark start time
     start_time = time.time()
@@ -317,18 +356,53 @@ def a_star(start: Tuple[float, float, int], goal: Tuple[float, float], clearance
         return path
 
     # Define function for getting node neighbors
-    def get_neighbors(node: Tuple[float, int, int], visited: np.ndarray, clearances: Dict, actions: List, map_size: Tuple[int, int] = (600, 250)) -> List:
-        x, y, theta = node
+    def get_neighbors(node: Tuple[float, float, float], visited: np.ndarray, clearances: Dict, actions: List, map_size: Tuple[int, int] = (5400, 3000)) -> List:
+        
+        # action specific parameters
+        dt = 1.0                # time step (s)
+        wheel_radius = 0.038    
+        wheel_base = 0.354
+
+        x, y, theta = node 
         neighbors = []
-        for move, delta_angle in actions:
-            new_theta = (theta + (delta_angle / 30)) % 12
-            new_x = x + move * np.cos(np.deg2rad(new_theta * 30))
-            new_y = y + move * np.sin(np.deg2rad(new_theta * 30))
-            int_x, int_y, int_theta = int(round(new_x)), int(round(new_y)), int(new_theta)
-            if 0 <= int_x < map_size[0] and 0 <= int_y < map_size[1]:
-                if is_valid(new_x, new_y, clearances) and visited[int_y, int_x, int_theta] == 0:
-                    visited[int_y, int_x, int_theta] = 1
-                    neighbors.append((new_x, new_y, new_theta))
+
+        # for every action set generate new node
+        action_i = 0
+        for ul, ur in actions:
+            
+            # get changes
+            dx, dy, dtheta = get_delta_pose(u_l=ul,u_r=ur,theta=theta, dt=dt, r=wheel_radius, L=wheel_base)
+
+            # apply deltas
+            new_x = x + dx
+            new_y = y + dy
+            new_theta = theta + dtheta
+
+            # check validty of new coords/heading and add to generated node list
+            int_x, int_y, int_theta = int(round(new_x)), int(round(new_y)), int((new_theta//30)%12)
+
+            try:
+                if 0 <= int_x < map_size[0] and 0 <= int_y < map_size[1]:
+
+                    if is_valid(new_x, new_y, clearances) and visited[int_y, int_x, int_theta] == 0:
+                        visited[int_y, int_x, int_theta] = 1
+                        neighbors.append((new_x, new_y, new_theta))
+
+                    else:
+                        print(f'\nInvalid Node Created with action index {action_i}: ', new_x, new_y, new_theta, ' ints: ', int_x, int_y, int_theta)
+                        print('Status -- visited: ', visited[int_y, int_x, int_theta] == 0)
+                        print('Status -- is_valid: ', 0 <= int_x < map_size[0])
+
+            
+
+            except Exception as e:
+                print('Error: ', type(e), e)
+                print('new_x: ', new_x, ' new_y: ', new_y, ' new_theta: ', new_theta)
+                print('- - EXITING - -')
+                sys.exit()
+
+            action_i += 1
+
         return neighbors
 
     # Create configuration map for visited nodes
@@ -401,6 +475,8 @@ def main():
     '''
 
     # Gather clearance
+    print('======================================================')
+    print('Project 3 Phase 2: Turtlebot A* Path Planner')
     user_clearance = get_clearance()
 
     clearance = base_clearance+user_clearance
@@ -534,13 +610,40 @@ def main():
     ]
 
     # Run search algorithm
+
+    print('======================================================')
+    print('Parameters:')
+    print('- Clearance: ', user_clearance)
+    print('- Start: ', start)
+    print('- Goal: ', goal)
+    print('- RPMS: ', rpms)
+    print('======================================================')
+    wait = input('Press Enter to Begin Algorithm')
+    print('Running A* Algorithm with given parameters...')
+
     path, explored_nodes = a_star(start, goal, clearances, actions)
+    print('Finished')
+
+    if path is None:
+        print('NO PATH FOUND: -- Explored: ', len(explored_nodes), ' Nodes')
+        print('== Exiting ==')
+        sys.exit()
 
     # Visualize the environment
     visualize_environment(obstacles, clearances, start, goal, path, explored_nodes)
 
 
-# Execute script
 
+def test():
+    
+
+    pass
+
+
+
+
+    
+
+# Execute script
 if __name__ == "__main__":
     main()
