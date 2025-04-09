@@ -461,12 +461,16 @@ def a_star(start: Tuple[float, float, int], goal: Tuple[float, float], clearance
                 hq.heappush(open_list, (total_cost, neighbor))
                 parent_map[neighbor] = current_node
 
+        # logging
+        if len(explored_nodes)%100 == 0:
+            print('Nodes Explored: ', len(explored_nodes))
+
+
         # early stop to give up -- for testing
         if len(explored_nodes) == early_stop:
             break
 
-        if len(explored_nodes)%100 == 0:
-            print('Nodes Explored: ', len(explored_nodes))
+
 
     return None, explored_nodes  # Return None if no path is found
         
