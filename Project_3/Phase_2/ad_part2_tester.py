@@ -6,13 +6,46 @@ import time
 from typing import Dict, Tuple, List, Callable, Union
 from numpy.typing import NDArray
 
+
+
+# class for timekeeping
+class Timer():
+
+    # initialize and start timer
+    def __init__(self):
+        
+        self.start_time = None
+        self.end_time = None
+        self.start()
+
+    # start timer
+    def start(self):
+        self.start_time = time.perf_counter()
+
+    # stop timer
+    def stop(self):
+        self.end_time = time.perf_counter()
+        elapsed = self._get_time()
+        return elapsed
+
+    # get string of time elapsed mins:seconds
+    def _get_time(self):
+        time_elapsed = self.end_time - self.start_time
+        return self._convert_times(time_elapsed)
+
+    # convert seconds to min/secs
+    def _convert_times(self, time):
+        mins = time//60
+        rem = time%60
+        return f'{mins}:{rem}'
+
 #import matplotlib.pyplot as plt
 
 import sys
 
-R = 35 #Robot Wheel Radius in mm
+R = 33 #Robot Wheel Radius in mm
 r = 250 #Robot Radius in mm
-L = 50 #Wheel Distance in mm
+L = 230 #Wheel Distance in mm
 
 map_x = 5400
 map_y = 3000
@@ -52,21 +85,43 @@ def get_delta_pose(current_x,current_y,theta_deg,u_l,u_r,dt,r,L):
     omega = r * (ur_rad - ul_rad) / L #rad/s
 
     # Update pose using small step integration
-    n_steps = max(1,int(dt / 0.1))
+    
     x, y, theta = current_x, current_y, np.radians(theta_deg)
 
     trajectory = []
+    trajectory.append((x,y,np.degrees(theta)%360))
 
+    time_step = dt
+
+    x += v * np.cos(theta) * time_step
+    y += v * np.sin(theta) * time_step
+    theta += omega * time_step
+    theta = np.degrees(theta)%360
+    trajectory.append((x,y,np.degrees(theta)%360))
+
+    return trajectory, v
+    
+    '''
+    #traj_time = Timer()
+
+    time_step = 1/v  # ensures that every time step equals 1 mm of distance to limit number of steps made   # 0.1
+    n_steps = max(1,int(dt / time_step))
     for _ in range(n_steps):
-        dx = v * np.cos(theta) * 0.1
-        dy = v * np.sin(theta) * 0.1
-        dtheta = omega * 0.1
+        dx = v * np.cos(theta) * time_step
+        dy = v * np.sin(theta) * time_step
+        dtheta = omega * time_step
         x += dx
         y += dy
         theta += dtheta
         trajectory.append((x,y,np.degrees(theta)%360))
+    # print('trajectory creation time: ', traj_time.stop())
+    # print('vel: ', v, ' time step: ', time_step, ' number steps: ', n_steps)
+    
 
     return trajectory,v
+    '''
+
+
 
 
 
@@ -97,6 +152,10 @@ def visualize_environment(obstacles, clearances, start, goal, path, explored_nod
 
     # Flip to match coordinate system
     frame = cv2.flip(frame, 0)
+
+    # Draw final start and goal points
+    cv2.circle(frame, (int(start[0]), int(map_y - start[1])), 50, (0, 0, 255), -1)  # Red (start)
+    cv2.circle(frame, (int(goal[0]), int(map_y - goal[1])), 50, (0, 255, 0), -1)  # Green (goal)
 
     # Draw explored node trajectories
     for i, node in enumerate(explored_nodes):
@@ -149,7 +208,6 @@ def visualize_environment(obstacles, clearances, start, goal, path, explored_nod
 
 
 # Define function for determining whether a location is valid
-
 def is_valid(x: float | int, y: float | int, clearances: Dict) -> bool:
 
     # If location is within obstacle constraints
@@ -164,10 +222,7 @@ def is_valid(x: float | int, y: float | int, clearances: Dict) -> bool:
         # Return valid
         return True
 
-
-
 # Define functions for gathering a pose
-
 def get_start_pose(clearances: Dict) -> Tuple:
 
     # Loop until pose is valid
@@ -179,7 +234,7 @@ def get_start_pose(clearances: Dict) -> Tuple:
 
         # default for quick testing
         if user_input == '':
-            user_input = '100,100,0'
+            user_input = '400,400,0'
 
 
         if user_input is None:
@@ -226,7 +281,6 @@ def get_start_pose(clearances: Dict) -> Tuple:
             print("Invalid input. Please enter exactly three integers separated by a comma.")
 
 # Define functions for gathering a pose
-
 def get_goal_pose(clearances: Dict) -> Tuple:
 
     # Loop until pose is valid
@@ -237,7 +291,7 @@ def get_goal_pose(clearances: Dict) -> Tuple:
 
         # default for quick testing
         if user_input == '':
-            user_input = '3000,500'
+            user_input = '1500,500'
 
         if user_input is None:
             return ("Please enter a pose.")
@@ -358,13 +412,23 @@ def a_star(start: Tuple[float, float, int], goal: Tuple[float, float], clearance
     # Mark start time
     start_time = time.time()
     debugging = 0           # show/hide outputs meant for debugging
-    threshold = 250.0        # distance threshold to goal to consider success
+    threshold = 250.0        # distance threshold to goal to consider success - radius of robot?
     early_stop_on = False
     early_stop = 500000      # number of nodes to explore before quitting algorithm
 
     # Define function for computing heuristic
     def heuristic(node: Tuple[float, float, int], goal: Tuple[float, float]) -> float:
-        return np.sqrt((node[0] - goal[0]) ** 2 + (node[1] - goal[1]) ** 2)
+
+        euclidean_dist = np.sqrt((node[0] - goal[0]) ** 2 + (node[1] - goal[1]) ** 2) 
+
+        dx = goal[0] - node[0]
+        dy = goal[1] - node[1]
+        direct_to_goal_heading = np.degrees(np.arctan2(dy,dx))
+        heading_difference = abs((direct_to_goal_heading - node[2] +180) % 360 - 180)
+        # print(node)
+        # print(goal)
+        # print(euclidean_dist, direct_to_goal_heading, heading_difference)
+        return euclidean_dist + heading_difference
 
     # Define function for backtracking
     def backtrack(goal: Tuple[float, float, int], parent_map: Dict) -> List:
@@ -392,23 +456,33 @@ def a_star(start: Tuple[float, float, int], goal: Tuple[float, float], clearance
         for ul, ur in actions:
             
             # get changes
+
             trajectory,v = get_delta_pose(u_l=ul,u_r=ur,theta_deg=theta_deg, dt=dt, r=wheel_radius, L=wheel_base,current_x=x,current_y=y)
             final_x, final_y, final_theta = trajectory[-1] 
 
-            skipCount = max(1,int(round(1/(v*dt/len(trajectory)))))
+            skipCount = 1 #max(1,int(round(1/(v*dt/len(trajectory)))))
 
             new_theta_30_index = int(round(final_theta / 30)) % 12
             int_x, int_y = int(round(final_x)), int(round(final_y))
 
+            traj_valid_time = Timer()
+            checked = 0
+            
             flag = 0
+            if not 0 <= final_x < map_size[0] or not 0 <= final_y < map_size[1] or not is_valid(final_x, final_y, clearances):
+                flag = 1 
 
-            for i in range(0,len(trajectory), skipCount):
+            # for i in range(0,len(trajectory), skipCount):
+            #     checked += 1
 
-                xi, yi, ti = trajectory[i]
+            #     xi, yi, ti = trajectory[i]
 
-                if not 0 <= xi < map_size[0] or not 0 <= yi < map_size[1] or not is_valid(final_x, final_y, clearances):
-                    flag = 1
-                    break
+            #     if not 0 <= xi < map_size[0] or not 0 <= yi < map_size[1] or not is_valid(xi, yi, clearances):
+            #         flag = 1
+            #         break
+
+            # print('Trajectory Validation Time: ', traj_valid_time.stop())
+            # print('checked: ', checked, ' total: ', len(trajectory))
 
             if not flag and visited[int_y, int_x, new_theta_30_index] == 0:
                 visited[int_y, int_x, new_theta_30_index] = 1
@@ -457,6 +531,7 @@ def a_star(start: Tuple[float, float, int], goal: Tuple[float, float], clearance
 
     # Loop until queue is empty
     try:
+        time_per_nodes = Timer()
         while open_list:
 
             current_node_info = hq.heappop(open_list)
@@ -495,7 +570,8 @@ def a_star(start: Tuple[float, float, int], goal: Tuple[float, float], clearance
 
             # logging
             if len(explored_nodes)%1000 == 0:
-                print('Nodes Explored: ', len(explored_nodes))
+                print('Nodes Explored: ', len(explored_nodes), ' -- ', time_per_nodes.stop())
+                time_per_nodes.start()
 
 
             # early stop to give up -- for testing
@@ -515,7 +591,7 @@ def a_star(start: Tuple[float, float, int], goal: Tuple[float, float], clearance
 
 def main():
 
-    base_clearance = 5
+    base_clearance = 5 + r  # needs to include radius of robot so robot does not touch obstacles
     
     # Define action set
     '''actions = [
@@ -676,8 +752,9 @@ def main():
     wait = input('Press Enter to Begin Algorithm')
     print('Running A* Algorithm with given parameters...')
 
+    algo_solve_time = Timer()
     path, explored_nodes, trajectory_map = a_star(start, goal, clearances, actions)
-    print('Finished')
+    print('Finished -- total algorithm run time: ', algo_solve_time.stop())
 
     if path is None:
         print('NO PATH FOUND: -- Explored: ', len(explored_nodes), ' Nodes')
