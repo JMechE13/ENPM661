@@ -395,7 +395,7 @@ def a_star(start: Tuple[float, float, int], goal: Tuple[float, float], clearance
             trajectory,v = get_delta_pose(u_l=ul,u_r=ur,theta_deg=theta_deg, dt=dt, r=wheel_radius, L=wheel_base,current_x=x,current_y=y)
             final_x, final_y, final_theta = trajectory[-1] 
 
-            skipCount = max(1,int(1/(v*dt/len(trajectory))))
+            skipCount = max(1,int(round(1/(v*dt/len(trajectory)))))
 
             new_theta_30_index = int(round(final_theta / 30)) % 12
             int_x, int_y = int(round(final_x)), int(round(final_y))
