@@ -10,7 +10,7 @@ from numpy.typing import NDArray
 
 import sys
 
-R = 50 #Robot Wheel Radius in mm
+R = 35 #Robot Wheel Radius in mm
 r = 250 #Robot Radius in mm
 L = 50 #Wheel Distance in mm
 
@@ -20,7 +20,7 @@ scale = 0.15
 
 
 
-def get_delta_pose(u_l,u_r,theta,dt,r,L):
+def get_delta_pose(current_x,current_y,theta_deg,u_l,u_r,dt,r,L):
     '''
 
     Args:
@@ -38,15 +38,41 @@ def get_delta_pose(u_l,u_r,theta,dt,r,L):
         - dtheta (float): change in heading
     
     '''
-    dx = (r/2)*(u_l+u_r)*np.cos(np.radians(theta*30))*dt
-    dy = (r/2)*(u_l+u_r)*np.sin(np.radians(theta*30))*dt
-    dtheta = np.degrees((r/L)*(u_r-u_l)*dt)
-    return dx,dy,dtheta
+    #dx = (r/2)*(u_l+u_r)*np.cos(np.radians(theta*30))*dt
+    #dy = (r/2)*(u_l+u_r)*np.sin(np.radians(theta*30))*dt
+    #dtheta = np.degrees((r/L)*(u_r-u_l)*dt)
+    #return dx,dy,dtheta
+
+    # Convert RPM to rad/s
+    ul_rad = (u_l * 2 * np.pi) / 60
+    ur_rad = (u_r * 2 * np.pi) / 60
+
+    # Compute linear and angular velocity
+    v = r * (ul_rad + ur_rad) / 2 #mm/s18.326
+    omega = r * (ur_rad - ul_rad) / L #rad/s0
+
+    # Update pose using small step integration
+    n_steps = max(1,int(dt / 0.01))
+    x, y, theta = current_x, current_y, np.radians(theta_deg)
+
+    trajectory = []
+
+    for _ in range(n_steps):
+        dx = v * np.cos(theta) * 0.01
+        dy = v * np.sin(theta) * 0.01
+        dtheta = omega * 0.01
+        x += dx
+        y += dy
+        theta += dtheta
+        trajectory.append((x,y,np.degrees(theta)%360))
+
+    return trajectory
+
+
 
 # Define function for visualizing environment
 
-def visualize_environment(obstacles, clearances, start, goal, path, explored_nodes):
-
+def visualize_environment(obstacles, clearances, start, goal, path, explored_nodes, trajectory_map):
     # Create a blank 5400x3000 white frame
     frame = np.ones((map_y, map_x, 3), dtype=np.uint8) * 255
 
@@ -57,7 +83,7 @@ def visualize_environment(obstacles, clearances, start, goal, path, explored_nod
     for conditions in clearances.values():
         mask = np.ones_like(x_grid, dtype=bool)
         for cond in conditions:
-            mask &= cond(x_grid, y_grid)  
+            mask &= cond(x_grid, y_grid)
         frame[mask] = (150, 150, 150)
 
     # Compute obstacle area and display as black
@@ -66,67 +92,54 @@ def visualize_environment(obstacles, clearances, start, goal, path, explored_nod
         temp_mask = np.ones_like(x_grid, dtype=bool)
         for cond in conditions:
             temp_mask &= cond(x_grid, y_grid)
-        obstacle_mask |= temp_mask  
+        obstacle_mask |= temp_mask
     frame[np.where(obstacle_mask)] = (0, 0, 0)
-
-    # Draw the start and goal points
-    cv2.circle(frame, (int(start[0]), int(start[1])), 50, (0, 0, 255), -1)
-    cv2.circle(frame, (int(goal[0]), int(goal[1])), 50, (0, 255, 0), -1)
 
     # Flip to match coordinate system
     frame = cv2.flip(frame, 0)
 
-    # Draw the explored nodes
-    for i in range(len(explored_nodes) - 1):
+    # Draw explored node trajectories
+    for i, node in enumerate(explored_nodes):
+        if node in trajectory_map:
+            trajectory = trajectory_map[node]
+            for j in range(len(trajectory) - 1):
+                x1, y1, _ = trajectory[j]
+                x2, y2, _ = trajectory[j + 1]
 
-        # Gather arrow end points
-        x1, y1, theta1 = explored_nodes[i]
-        x2, y2, theta2 = explored_nodes[i + 1]
+                y1_flipped = map_y - y1
+                y2_flipped = map_y - y2
 
-        dx = int(3 * np.cos(np.radians(theta2 * 30)))
-        dy = int(3 * np.sin(np.radians(theta2 * 30)))
+                cv2.line(frame, (int(x1), int(y1_flipped)), (int(x2), int(y2_flipped)),
+                         (0, 200, 200), 1)
+        else:
+            print("not there")
 
-        # Flip to match coordinate system
-        y1_flipped = map_y - y1
-        dy_flipped = -dy
-
-        # Draw arrow of explored node
-        cv2.arrowedLine(frame, (int(x1), int(y1_flipped)), (int(x1 + dx), int(y1_flipped + dy_flipped)), 
-                        (0, 200, 200), 20, tipLength=1)
-        
-        scale_frame = cv2.resize(frame,(int(map_x*scale),int(map_y*scale)),interpolation=cv2.INTER_LINEAR)
-
-        # Display animation
-        if i%100 == 0:
+        # Update display every 100 steps
+        if i % 100 == 0:
+            scale_frame = cv2.resize(frame, (int(map_x * scale), int(map_y * scale)), interpolation=cv2.INTER_LINEAR)
             cv2.imshow("A* Path Visualization", scale_frame)
             cv2.waitKey(1)
 
-
-    # Draw path nodes
+    # Draw path node trajectories
     if path is not None:
-        for i in range(len(path) - 1):
+        for node in path:
+            if node in trajectory_map:
+                trajectory = trajectory_map[node]
+                for j in range(len(trajectory) - 1):
+                    x1, y1, _ = trajectory[j]
+                    x2, y2, _ = trajectory[j + 1]
 
-            # Gather arrow end points
-            x1, y1, theta1 = path[i]
-            x2, y2, theta2 = path[i + 1]
-            
-            dx = int(5 * np.cos(np.radians(theta2 * 30)))  # Scale for better visibility
-            dy = int(5 * np.sin(np.radians(theta2 * 30)))
+                    y1_flipped = map_y - y1
+                    y2_flipped = map_y - y2
 
-            # Flip to match coordinate system
-            y1_flipped = map_y - y1
-            y2_flipped = map_y - y2
-            dy_flipped = -dy
+                    cv2.line(frame, (int(x1), int(y1_flipped)), (int(x2), int(y2_flipped)),
+                             (255, 0, 0), 2)  # Blue path
 
-            # Draw path node
-            cv2.arrowedLine(frame, (int(x1), int(y1_flipped)), (int(x2), int(y2_flipped)), 
-                            (255, 0, 0), 1, tipLength=1)  # Blue arrows
-
-    # Draw start and goal points
+    # Draw final start and goal points
     cv2.circle(frame, (int(start[0]), int(map_y - start[1])), 50, (0, 0, 255), -1)  # Red (start)
     cv2.circle(frame, (int(goal[0]), int(map_y - goal[1])), 50, (0, 255, 0), -1)  # Green (goal)
 
-    scale_frame = cv2.resize(frame,(int(map_x*scale),int(map_y*scale)),interpolation=cv2.INTER_LINEAR)
+    scale_frame = cv2.resize(frame, (int(map_x * scale), int(map_y * scale)), interpolation=cv2.INTER_LINEAR)
 
     # Final visualization
     cv2.imshow("A* Path Visualization", scale_frame)
@@ -194,7 +207,7 @@ def get_start_pose(clearances: Dict) -> Tuple:
                     
                     # If location is not an obstacle, return pose
                     if is_valid(x + 1, y + 1, clearances):
-                        return (x, y, (theta / 30) % 12)
+                        return (x, y, (theta % 360))
                     
                     # Inform user of invalid location
                     else:
@@ -341,7 +354,7 @@ def get_clearance() -> int:
    
 
 def a_star(start: Tuple[float, float, int], goal: Tuple[float, float], clearances: Dict, actions: List, map_size: Tuple[int, int] = (5400, 3000)) -> Union[List, None]:
-
+    trajectory_map = {}
     # Mark start time
     start_time = time.time()
     debugging = 0           # show/hide outputs meant for debugging
@@ -363,62 +376,54 @@ def a_star(start: Tuple[float, float, int], goal: Tuple[float, float], clearance
         return path
 
     # Define function for getting node neighbors
-    def get_neighbors(node: Tuple[float, float, float], visited: np.ndarray, clearances: Dict, actions: List, map_size: Tuple[int, int] = (5400, 3000)) -> List:
+    def get_neighbors(node: Tuple[float, float, float], visited: np.ndarray, clearances: Dict, actions: List, map_size: Tuple[int, int] = (map_x, map_y)) -> List:
         
         # action specific parameters
         dt = 1.0                # time step (s)
-        wheel_radius = 50   
-        wheel_base = 50
+        wheel_radius = R   
+        wheel_base = L
 
         x, y, theta = node 
+        theta_deg = theta % 360
         neighbors = []
 
         # for every action set generate new node
-        action_i = 0
+        #action_i = 0
         for ul, ur in actions:
             
             # get changes
-            dx, dy, o_dtheta = get_delta_pose(u_l=ul,u_r=ur,theta=theta, dt=dt, r=wheel_radius, L=wheel_base)
+            trajectory = get_delta_pose(u_l=ul,u_r=ur,theta_deg=theta_deg, dt=dt, r=wheel_radius, L=wheel_base,current_x=x,current_y=y)
+            final_x, final_y, final_theta = trajectory[-1] 
 
-            # apply deltas
-            new_x = x + dx
-            new_y = y + dy
-            dtheta = (o_dtheta/30)
-            theta_sum = (theta + dtheta)
-            # edge case handing, see scratchpad.py
-            if abs(theta_sum) < 0.00000000001:
-                theta_sum = 0.0
-            new_theta = theta_sum%12
+            new_theta_30_index = int(round(final_theta / 30)) % 12
+            int_x, int_y = int(round(final_x)), int(round(final_y))
 
-            # check validty of new coords/heading and add to generated node list
-            int_x, int_y, int_theta = int(round(new_x)), int(round(new_y)), int(new_theta)
+            if 0 <= int_x < map_size[0] and 0 <= int_y < map_size[1]:
+                if is_valid(final_x, final_y, clearances) and visited[int_y, int_x, new_theta_30_index] == 0:
+                    visited[int_y, int_x, new_theta_30_index] = 1
+                    neighbors.append((final_x, final_y, final_theta))
+                    trajectory_map[(final_x, final_y, final_theta)] = trajectory
 
-            try:
-                if 0 <= int_x < map_size[0] and 0 <= int_y < map_size[1]:
-
-                    if is_valid(new_x, new_y, clearances) and visited[int_y, int_x, int_theta] == 0:
-                        visited[int_y, int_x, int_theta] = 1
-                        neighbors.append((new_x, new_y, new_theta))
-
-                    else:
+                    """else:
                         if debugging:
                             print(f'\nInvalid Node Created with action index {action_i}: ', new_x, new_y, new_theta, ' ints: ', int_x, int_y, int_theta)
                             print('Status -- visited: ', visited[int_y, int_x, int_theta] == 0)
                             print('Status -- is_valid: ', 0 <= int_x < map_size[0])
-
+                    
             
 
             except Exception as e:
                 print('Error: ', type(e), e)
-                print('new_x: ', new_x, ' new_y: ', new_y, ' new_theta: ', new_theta, '\ndx :', dx, " dy: ", dy, ' dtheta: ', o_dtheta, ' dtheta adjusted: ', dtheta, '\nx: ', x, ' y: ', y, ' theta: ', theta)
-                print('theta sum: ', theta_sum)
-                print('theta sum mod: ', (theta_sum)%12)
+                print('new_x: ', new_x, ' new_y: ', new_y, ' new_theta: ', new_theta_deg, '\ndx :', dx, " dy: ", dy, ' dtheta: ', dtheta, ' dtheta adjusted: ', dtheta, '\nx: ', x, ' y: ', y, ' theta: ', theta)
+                #print('theta sum: ', theta_sum)
+                #print('theta sum mod: ', new_theta_30)
 
                 
                 print('- - EXITING - -')
                 sys.exit()
+            """
 
-            action_i += 1
+            #action_i += 1
 
         return neighbors
 
@@ -451,6 +456,7 @@ def a_star(start: Tuple[float, float, int], goal: Tuple[float, float], clearance
 
             # Record explored node for visualization
             explored_nodes.append(current_node)
+            #print(current_node)
 
             # Determine if solution is found
             if np.sqrt((current_node[0] - goal[0]) ** 2 + (current_node[1] - goal[1]) ** 2) <= threshold:
@@ -461,7 +467,7 @@ def a_star(start: Tuple[float, float, int], goal: Tuple[float, float], clearance
                 print(f"Time to search: {end_time - start_time:.4f} seconds")
 
                 # Backtrack to find path from goal
-                return backtrack(current_node, parent_map), explored_nodes
+                return backtrack(current_node, parent_map), explored_nodes, trajectory_map
             
             # Loop through neighbors
             for neighbor in get_neighbors(current_node, visited, clearances, actions):
@@ -490,7 +496,7 @@ def a_star(start: Tuple[float, float, int], goal: Tuple[float, float], clearance
 
 
 
-    return None, explored_nodes  # Return None if no path is found
+    return None, explored_nodes, trajectory_map  # Return None if no path is found
         
     
 
@@ -659,21 +665,35 @@ def main():
     wait = input('Press Enter to Begin Algorithm')
     print('Running A* Algorithm with given parameters...')
 
-    path, explored_nodes = a_star(start, goal, clearances, actions)
+    path, explored_nodes, trajectory_map = a_star(start, goal, clearances, actions)
     print('Finished')
 
     if path is None:
         print('NO PATH FOUND: -- Explored: ', len(explored_nodes), ' Nodes')
 
     # Visualize the environment
-    visualize_environment(obstacles, clearances, start, goal, path, explored_nodes)
+    visualize_environment(obstacles, clearances, start, goal, path, explored_nodes, trajectory_map)
 
 
 
 def test():
+    R = 35  # Updated wheel radius
+    L = 160 # Updated wheelbase
     
-
-    pass
+    start = (499.0, 29.0, 30)
+    print("Start:", start)
+    
+    # Test straight movement (5,5)
+    traj = get_delta_pose(*start, 5, 5, 1.0, R, L)
+    print("After moving (5,5):", traj[-1])  # Should move ~18.3mm forward
+    
+    # Test right turn (5,10)
+    traj = get_delta_pose(*start, 5, 10, 1.0, R, L) 
+    print("After moving (5,10):", traj[-1])  # Should curve right
+    
+    # Test pivot (0,5) 
+    traj = get_delta_pose(*start, -5, 5, 1.0, R, L)
+    print("After pivoting (0,5):", traj[-1])  # Should turn in place
 
 
 
