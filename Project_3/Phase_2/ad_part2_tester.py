@@ -48,8 +48,8 @@ def get_delta_pose(current_x,current_y,theta_deg,u_l,u_r,dt,r,L):
     ur_rad = (u_r * 2 * np.pi) / 60
 
     # Compute linear and angular velocity
-    v = r * (ul_rad + ur_rad) / 2 #mm/s18.326
-    omega = r * (ur_rad - ul_rad) / L #rad/s0
+    v = r * (ul_rad + ur_rad) / 2 #mm/s
+    omega = r * (ur_rad - ul_rad) / L #rad/s
 
     # Update pose using small step integration
     n_steps = max(1,int(dt / 0.01))
@@ -111,8 +111,8 @@ def visualize_environment(obstacles, clearances, start, goal, path, explored_nod
 
                 cv2.line(frame, (int(x1), int(y1_flipped)), (int(x2), int(y2_flipped)),
                          (0, 200, 200), 1)
-        else:
-            print("not there")
+        #else:
+            #print("not there")
 
         # Update display every 100 steps
         if i % 100 == 0:
