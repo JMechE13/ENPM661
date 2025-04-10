@@ -16,7 +16,7 @@ L = 50 #Wheel Distance in mm
 
 map_x = 5400
 map_y = 3000
-scale = 0.15
+scale = .2
 
 
 
@@ -52,15 +52,15 @@ def get_delta_pose(current_x,current_y,theta_deg,u_l,u_r,dt,r,L):
     omega = r * (ur_rad - ul_rad) / L #rad/s
 
     # Update pose using small step integration
-    n_steps = max(1,int(dt / 0.01))
+    n_steps = max(1,int(dt / 0.1))
     x, y, theta = current_x, current_y, np.radians(theta_deg)
 
     trajectory = []
 
     for _ in range(n_steps):
-        dx = v * np.cos(theta) * 0.01
-        dy = v * np.sin(theta) * 0.01
-        dtheta = omega * 0.01
+        dx = v * np.cos(theta) * 0.1
+        dy = v * np.sin(theta) * 0.1
+        dtheta = omega * 0.1
         x += dx
         y += dy
         theta += dtheta
