@@ -44,8 +44,9 @@ class Timer():
 import sys
 
 R = 33 #Robot Wheel Radius in mm
-r = 250 #Robot Radius in mm
-L = 230 #Wheel Distance in mm
+r = 90 #Robot Radius in mm
+L = 90 #Wheel Distance in mm
+DT = 1.0
 
 map_x = 5400
 map_y = 3000
@@ -156,7 +157,7 @@ def visualize_environment(obstacles, clearances, start, goal, path, explored_nod
     # Draw final start and goal points
     cv2.circle(frame, (int(start[0]), int(map_y - start[1])), 50, (0, 0, 255), -1)  # Red (start)
     cv2.circle(frame, (int(goal[0]), int(map_y - goal[1])), 50, (0, 255, 0), -1)  # Green (goal)
-
+    print(('Plotting Explored Nodes...'))
     # Draw explored node trajectories
     for i, node in enumerate(explored_nodes):
         if node in trajectory_map:
@@ -179,8 +180,11 @@ def visualize_environment(obstacles, clearances, start, goal, path, explored_nod
             cv2.imshow("A* Path Visualization", scale_frame)
             cv2.waitKey(1)
 
+    print('Finished')
     # Draw path node trajectories
     if path is not None:
+
+        print('Plotting Path...')
         for node in path:
             if node in trajectory_map:
                 trajectory = trajectory_map[node]
@@ -194,14 +198,15 @@ def visualize_environment(obstacles, clearances, start, goal, path, explored_nod
                     cv2.line(frame, (int(x1), int(y1_flipped)), (int(x2), int(y2_flipped)),
                              (255, 0, 0), 5)  # Blue path
 
-    # Draw final start and goal points
-    cv2.circle(frame, (int(start[0]), int(map_y - start[1])), 50, (0, 0, 255), -1)  # Red (start)
-    cv2.circle(frame, (int(goal[0]), int(map_y - goal[1])), 50, (0, 255, 0), -1)  # Green (goal)
+        # Draw final start and goal points
+        cv2.circle(frame, (int(start[0]), int(map_y - start[1])), 50, (0, 0, 255), -1)  # Red (start)
+        cv2.circle(frame, (int(goal[0]), int(map_y - goal[1])), 50, (0, 255, 0), -1)  # Green (goal)
 
-    scale_frame = cv2.resize(frame, (int(map_x * scale), int(map_y * scale)), interpolation=cv2.INTER_LINEAR)
+        scale_frame = cv2.resize(frame, (int(map_x * scale), int(map_y * scale)), interpolation=cv2.INTER_LINEAR)
 
-    # Final visualization
-    cv2.imshow("A* Path Visualization", scale_frame)
+        # Final visualization
+        print('Finished')
+        cv2.imshow("A* Path Visualization", scale_frame)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
@@ -428,7 +433,7 @@ def a_star(start: Tuple[float, float, int], goal: Tuple[float, float], clearance
         # print(node)
         # print(goal)
         # print(euclidean_dist, direct_to_goal_heading, heading_difference)
-        return euclidean_dist + heading_difference
+        return euclidean_dist #+ heading_difference
 
     # Define function for backtracking
     def backtrack(goal: Tuple[float, float, int], parent_map: Dict) -> List:
@@ -443,7 +448,7 @@ def a_star(start: Tuple[float, float, int], goal: Tuple[float, float], clearance
     def get_neighbors(node: Tuple[float, float, float], visited: np.ndarray, clearances: Dict, actions: List, map_size: Tuple[int, int] = (map_x, map_y)) -> List:
         
         # action specific parameters
-        dt = 1.0                # time step (s)
+        dt = DT               # time step (s)
         wheel_radius = R   
         wheel_base = L
 
@@ -748,6 +753,11 @@ def main():
     print('- Start: ', printstart)
     print('- Goal: ', printgoal)
     print('- RPMS: ', rpms)
+    print('- Action Time Step: ', DT)
+    print('Robot Attributes: ')
+    print('- Wheel Radius: ', R)
+    print('- Chassis Radius: ', r)
+    print('- Wheel Base: ', L)
     print('======================================================')
     wait = input('Press Enter to Begin Algorithm')
     print('Running A* Algorithm with given parameters...')
