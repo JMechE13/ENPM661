@@ -110,7 +110,7 @@ def visualize_environment(obstacles, clearances, start, goal, path, explored_nod
                 y2_flipped = map_y - y2
 
                 cv2.line(frame, (int(x1), int(y1_flipped)), (int(x2), int(y2_flipped)),
-                         (0, 200, 200), 1)
+                         (0, 200, 200), 5)
         #else:
             #print("not there")
 
@@ -133,7 +133,7 @@ def visualize_environment(obstacles, clearances, start, goal, path, explored_nod
                     y2_flipped = map_y - y2
 
                     cv2.line(frame, (int(x1), int(y1_flipped)), (int(x2), int(y2_flipped)),
-                             (255, 0, 0), 2)  # Blue path
+                             (255, 0, 0), 5)  # Blue path
 
     # Draw final start and goal points
     cv2.circle(frame, (int(start[0]), int(map_y - start[1])), 50, (0, 0, 255), -1)  # Red (start)
@@ -400,13 +400,22 @@ def a_star(start: Tuple[float, float, int], goal: Tuple[float, float], clearance
             new_theta_30_index = int(round(final_theta / 30)) % 12
             int_x, int_y = int(round(final_x)), int(round(final_y))
 
-            if 0 <= int_x < map_size[0] and 0 <= int_y < map_size[1]:
-                if is_valid(final_x, final_y, clearances) and visited[int_y, int_x, new_theta_30_index] == 0:
-                    visited[int_y, int_x, new_theta_30_index] = 1
-                    neighbors.append((final_x, final_y, final_theta))
-                    trajectory_map[(final_x, final_y, final_theta)] = trajectory
+            flag = 0
 
-                    """else:
+            for i in range(0,len(trajectory), skipCount):
+
+                xi, yi, ti = trajectory[i]
+
+                if not 0 <= xi < map_size[0] or not 0 <= yi < map_size[1] or not is_valid(final_x, final_y, clearances):
+                    flag = 1
+                    break
+
+            if not flag and visited[int_y, int_x, new_theta_30_index] == 0:
+                visited[int_y, int_x, new_theta_30_index] = 1
+                neighbors.append((final_x, final_y, final_theta))
+                trajectory_map[(final_x, final_y, final_theta)] = trajectory
+
+            """else:
                         if debugging:
                             print(f'\nInvalid Node Created with action index {action_i}: ', new_x, new_y, new_theta, ' ints: ', int_x, int_y, int_theta)
                             print('Status -- visited: ', visited[int_y, int_x, int_theta] == 0)
