@@ -66,7 +66,7 @@ def get_delta_pose(current_x,current_y,theta_deg,u_l,u_r,dt,r,L):
         theta += dtheta
         trajectory.append((x,y,np.degrees(theta)%360))
 
-    return trajectory
+    return trajectory,v
 
 
 
@@ -392,8 +392,10 @@ def a_star(start: Tuple[float, float, int], goal: Tuple[float, float], clearance
         for ul, ur in actions:
             
             # get changes
-            trajectory = get_delta_pose(u_l=ul,u_r=ur,theta_deg=theta_deg, dt=dt, r=wheel_radius, L=wheel_base,current_x=x,current_y=y)
+            trajectory,v = get_delta_pose(u_l=ul,u_r=ur,theta_deg=theta_deg, dt=dt, r=wheel_radius, L=wheel_base,current_x=x,current_y=y)
             final_x, final_y, final_theta = trajectory[-1] 
+
+            skipCount = max(1,int(1/(v*dt/len(trajectory))))
 
             new_theta_30_index = int(round(final_theta / 30)) % 12
             int_x, int_y = int(round(final_x)), int(round(final_y))
@@ -684,15 +686,15 @@ def test():
     print("Start:", start)
     
     # Test straight movement (5,5)
-    traj = get_delta_pose(*start, 5, 5, 1.0, R, L)
+    traj,v = get_delta_pose(*start, 5, 5, 1.0, R, L)
     print("After moving (5,5):", traj[-1])  # Should move ~18.3mm forward
     
     # Test right turn (5,10)
-    traj = get_delta_pose(*start, 5, 10, 1.0, R, L) 
+    traj,v = get_delta_pose(*start, 5, 10, 1.0, R, L) 
     print("After moving (5,10):", traj[-1])  # Should curve right
     
     # Test pivot (0,5) 
-    traj = get_delta_pose(*start, -5, 5, 1.0, R, L)
+    traj,v = get_delta_pose(*start, -5, 5, 1.0, R, L)
     print("After pivoting (0,5):", traj[-1])  # Should turn in place
 
 
