@@ -652,7 +652,7 @@ def main():
     ]
 
     # Run search algorithm
-    printstart = f"({start[0]+1}, {start[1]+1}, {start[2]*30})"
+    printstart = f"({start[0]+1}, {start[1]+1}, {start[2]})"
     printgoal = f"({goal[0]+1}, {goal[1]+1})"
 
     print('======================================================')
