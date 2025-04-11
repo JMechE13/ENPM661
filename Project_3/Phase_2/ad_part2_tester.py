@@ -42,10 +42,12 @@ class Timer():
 #import matplotlib.pyplot as plt
 
 import sys
-
+3
+# link to turtlbot3 waffle specs:
+# https://www.robotis.us/turtlebot-3-waffle-pi-rpi4-4gb-us/?srsltid=AfmBOooiyGxavAjLuccnF81d3mxxE8KWS26Qk2dWRsSpROtfKBzxHcfu
 R = 33 #Robot Wheel Radius in mm
-r = 90 #Robot Radius in mm
-L = 90 #Wheel Distance in mm
+r = 220 #Robot Radius in mm
+L = 143.5 #Wheel Distance in mm
 DT = 1.0
 
 map_x = 5400
@@ -90,19 +92,19 @@ def get_delta_pose(current_x,current_y,theta_deg,u_l,u_r,dt,r,L):
     x, y, theta = current_x, current_y, np.radians(theta_deg)
 
     trajectory = []
-    trajectory.append((x,y,np.degrees(theta)%360))
+    # trajectory.append((x,y,np.degrees(theta)%360))
 
-    time_step = dt
+    # time_step = dt
 
-    x += v * np.cos(theta) * time_step
-    y += v * np.sin(theta) * time_step
-    theta += omega * time_step
-    theta = np.degrees(theta)%360
-    trajectory.append((x,y,np.degrees(theta)%360))
+    # x += v * np.cos(theta) * time_step
+    # y += v * np.sin(theta) * time_step
+    # theta += omega * time_step
+    # theta = np.degrees(theta)%360
+    # trajectory.append((x,y,np.degrees(theta)%360))
 
-    return trajectory, v
+    # return trajectory, v
     
-    '''
+    
     #traj_time = Timer()
 
     time_step = 1/v  # ensures that every time step equals 1 mm of distance to limit number of steps made   # 0.1
@@ -120,7 +122,7 @@ def get_delta_pose(current_x,current_y,theta_deg,u_l,u_r,dt,r,L):
     
 
     return trajectory,v
-    '''
+    
 
 
 
@@ -426,10 +428,10 @@ def a_star(start: Tuple[float, float, int], goal: Tuple[float, float], clearance
 
         euclidean_dist = np.sqrt((node[0] - goal[0]) ** 2 + (node[1] - goal[1]) ** 2) 
 
-        dx = goal[0] - node[0]
-        dy = goal[1] - node[1]
-        direct_to_goal_heading = np.degrees(np.arctan2(dy,dx))
-        heading_difference = abs((direct_to_goal_heading - node[2] +180) % 360 - 180)
+        # dx = goal[0] - start[0]
+        # dy = goal[1] - start[1]
+        # direct_to_goal_heading = np.degrees(np.arctan2(dy,dx))
+        # heading_difference = abs((direct_to_goal_heading - node[2] +180) % 360 - 180)
         # print(node)
         # print(goal)
         # print(euclidean_dist, direct_to_goal_heading, heading_difference)
@@ -465,7 +467,7 @@ def a_star(start: Tuple[float, float, int], goal: Tuple[float, float], clearance
             trajectory,v = get_delta_pose(u_l=ul,u_r=ur,theta_deg=theta_deg, dt=dt, r=wheel_radius, L=wheel_base,current_x=x,current_y=y)
             final_x, final_y, final_theta = trajectory[-1] 
 
-            skipCount = 1 #max(1,int(round(1/(v*dt/len(trajectory)))))
+            skipCount = 1 #max(1,int(round(1/(v*dt/len(trajectory)))))  ## since ensuring 1mm distance for trajectory step, do not need skip count, instead check every one since they are 1mm anyways
 
             new_theta_30_index = int(round(final_theta / 30)) % 12
             int_x, int_y = int(round(final_x)), int(round(final_y))
