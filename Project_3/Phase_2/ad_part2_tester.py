@@ -47,7 +47,7 @@ import sys
 # https://www.robotis.us/turtlebot-3-waffle-pi-rpi4-4gb-us/?srsltid=AfmBOooiyGxavAjLuccnF81d3mxxE8KWS26Qk2dWRsSpROtfKBzxHcfu
 R = 33 #Robot Wheel Radius in mm
 r = 220 #Robot Radius in mm
-L = 143.5 #Wheel Distance in mm
+L = 287 #Wheel Distance in mm
 DT = 1.0
 
 map_x = 5400
