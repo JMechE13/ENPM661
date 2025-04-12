@@ -55,7 +55,7 @@ DT = 1.0
 # map dims
 map_x = 5400
 map_y = 3000
-scale = .3 
+scale = .2
 
 
 # prompts user for desired clearance, generates clearances dict
@@ -376,7 +376,7 @@ def get_action_set(rpms):
     return actions
 
 # checks point for validity: Not within obstacles or clearance regions
-def is_valid(x: float | int, y: float | int, clearances: Dict) -> bool:
+def is_valid(x: Union[float,int], y: Union[float,int], clearances: Dict) -> bool:
 
     # If location is within obstacle constraints
     if any(all(constraint(x, y) for constraint in constraints) for constraints in clearances.values()):
