@@ -273,7 +273,7 @@ def get_goal(clearances: Dict) -> Tuple:
 
         # default for quick testing
         if user_input == '':
-            user_input = '1500,500'
+            user_input = '5000,500'
 
         if user_input is None:
             return ("Please enter a pose.")
