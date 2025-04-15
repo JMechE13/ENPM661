@@ -417,7 +417,9 @@ def visualize_environment(obstacles, clearances, start, goal, path, explored_nod
 
     # Draw final start and goal points
     cv2.circle(frame, (int(start[0]), int(map_y - start[1])), 50, (0, 0, 255), -1)  # Red (start)
-    cv2.circle(frame, (int(goal[0]), int(map_y - goal[1])), 50, (0, 255, 0), -1)  # Green (goal)
+    cv2.circle(frame, (int(goal[0]), int(map_y - goal[1])), RR, (0, 255, 0), -1)  # Green (goal)
+    cv2.circle(frame,(int(goal[0]), int(map_y - goal[1])), 15, (0, 0, 0), -1)  # Green (goal)
+
     print(('Plotting Explored Nodes...'))
     # Draw explored node trajectories
     for i, trajectory in enumerate(trajectory_list):
@@ -434,7 +436,7 @@ def visualize_environment(obstacles, clearances, start, goal, path, explored_nod
             #print("not there")
 
         # Update display every 100 steps
-        if i % 100 == 0:
+        if i % 2 == 0:
             scale_frame = cv2.resize(frame, (int(map_x * scale), int(map_y * scale)), interpolation=cv2.INTER_LINEAR)
             cv2.imshow("A* Path Visualization", scale_frame)
             cv2.waitKey(1)
@@ -459,7 +461,9 @@ def visualize_environment(obstacles, clearances, start, goal, path, explored_nod
 
         # Draw final start and goal points
         cv2.circle(frame, (int(start[0]), int(map_y - start[1])), 50, (0, 0, 255), -1)  # Red (start)
-        cv2.circle(frame, (int(goal[0]), int(map_y - goal[1])), 50, (0, 255, 0), -1)  # Green (goal)
+        cv2.circle(frame, (int(goal[0]), int(map_y - goal[1])), RR, (0, 255, 0), -1)  # Green (goal)
+        cv2.circle(frame,(int(goal[0]), int(map_y - goal[1])), 15, (0, 0, 0), -1)  # Green (goal)
+
 
         scale_frame = cv2.resize(frame, (int(map_x * scale), int(map_y * scale)), interpolation=cv2.INTER_LINEAR)
 
