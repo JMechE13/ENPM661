@@ -2,10 +2,8 @@ import numpy as np
 import heapq as hq
 import cv2
 import time
-import sys
 
-from typing import Dict, Tuple, List, Callable, Union
-from numpy.typing import NDArray
+from typing import Dict, Tuple, List, Union
 
 import matplotlib.pyplot as plt
 
@@ -547,7 +545,6 @@ def a_star(start: Tuple[float, float, int], goal: Tuple[float, float], clearance
     def get_neighbors(node: Tuple[float, float, float], visited: np.ndarray, clearances: Dict, actions: List, map_size: Tuple[int, int] = (map_x, map_y)) -> List:
 
         x, y, theta = node 
-        theta_deg = theta % 360
         neighbors = []
 
         # for every action set generate new node
@@ -560,9 +557,6 @@ def a_star(start: Tuple[float, float, int], goal: Tuple[float, float], clearance
 
             new_theta_30_index = int(round(final_theta / 30)) % 12
             int_x, int_y = int(round(final_x)/duplicate_distance_threshold), int(round(final_y)/duplicate_distance_threshold)
-
-            traj_valid_time = Timer()
-            checked = 0
             
             flag = 0
             for point in trajectory:
